@@ -23,12 +23,14 @@
  */
 package jpipe.interfaceclass;
 
-import java.util.Collection;
+import java.util.ArrayList;
+
+
 
 /**
  *
  * @author Yibo
  */
 public interface WorkerInterface {
-    public abstract void work(Collection<BufferInterface> buffers);
+    public abstract int work(ArrayList<BufferInterface> buffers);
 }

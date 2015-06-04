@@ -30,6 +30,8 @@ package jpipe.dynamic.Analysis;
 public class BlockAnalyser {
 
     private int workdoneAmount;
+    private int workfaileAmount;
+
     private long LastLatency;
     private long maxLatency;
     private long minLatency;
@@ -51,16 +53,22 @@ public class BlockAnalyser {
     }
 
     public void workdone(long latency) {
+        System.out.println("Workdone!" + latency);
         workdoneAmount++;
         if (latency > maxLatency) {
+            System.out.println("new max!");
             maxLatency = latency;
         }
         if (latency < minLatency) {
             minLatency = latency;
         }
-        meanLatency = meanLatency + ((double) latency - meanLatency) / workdoneAmount;
+        meanLatency = meanLatency + ((double) latency - meanLatency) / (double) workdoneAmount;
 
-        SoftReset();
+    }
+
+    public void workfail() {
+        workfaileAmount++;
+
     }
 
     public void SoftReset() {
@@ -68,12 +76,12 @@ public class BlockAnalyser {
         maxLatency = Long.MIN_VALUE;
         minLatency = Long.MAX_VALUE;
         meanLatency = 0;
-        workdoneAmount = 0;
 
     }
 
     public void HardReset() {
         this.SoftReset();
+        workdoneAmount = 0;
         blockStartTime = System.nanoTime();
     }
 
@@ -83,11 +91,27 @@ public class BlockAnalyser {
         result.setAverageLatency(meanLatency);
         result.setMaximumLatency(maxLatency);
         result.setMinimumLatency(minLatency);
-        result.setBlockThroughput(Math.pow(10, 9) / meanLatency);
+        result.setBlockThroughput(workdoneAmount / (double) timespent);
         result.setWorkdoneAmount(workdoneAmount);
-        result.setBlockRunningTime(timespent);
+        result.setBlockRunningTime(getBlockRunningTime());
+        SoftReset();
         return result;
-        
+
     }
 
+    public BlockAnalysisResult analyseMs() {
+        long timespent = this.getBlockRunningTime();
+        BlockAnalysisResult result = new BlockAnalysisResult();
+        result.setAverageLatency(meanLatency / (Math.pow(10, 6)));
+        result.setMaximumLatency((long) (maxLatency / (Math.pow(10, 6))));
+        result.setMinimumLatency((long) (minLatency / (Math.pow(10, 6))));
+        result.setBlockThroughput(workdoneAmount / (timespent / (Math.pow(10, 9))));
+        result.setWorkdoneAmount(workdoneAmount);
+        result.setWorkfailAmount(workfaileAmount);
+
+        result.setBlockRunningTime((long) ((getBlockRunningTime()) / (Math.pow(10, 6))));
+        SoftReset();
+        return result;
+
+    }
 }

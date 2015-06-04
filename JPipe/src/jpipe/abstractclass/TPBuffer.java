@@ -30,15 +30,15 @@ import jpipe.interfaceclass.BufferInterface;
  * This is a buffer used for task parallelism
  *
  * @author Yibo
- * @param <T>
+ * @param <E>
  */
-public abstract class TPBuffer<T> implements BufferInterface {
+public abstract class TPBuffer<E> implements BufferInterface {
     
-    public abstract boolean push(T obj);
+    public abstract boolean push(E obj);
 
-    public abstract T poll();
+    public abstract E poll();
 
-    public abstract T peek();
+    public abstract E peek();
 
     public abstract void clear();
 
@@ -46,5 +46,5 @@ public abstract class TPBuffer<T> implements BufferInterface {
 
     public abstract boolean setMaxsize(int maxsize);
     
-    public abstract  List<T> pollAll() ;
+    public abstract  List<E> pollAll() ;
 }

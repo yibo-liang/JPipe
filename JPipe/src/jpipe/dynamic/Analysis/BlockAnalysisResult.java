@@ -34,7 +34,17 @@ public class BlockAnalysisResult {
     private long MaximumLatency;
     private long MinimumLatency;
     private int workdoneAmount;
+    private int workfailAmount;
+
     private long blockRunningTime;
+
+    public int getWorkfailAmount() {
+        return workfailAmount;
+    }
+
+    public void setWorkfailAmount(int workfailAmount) {
+        this.workfailAmount = workfailAmount;
+    }
 
     public long getBlockRunningTime() {
         return blockRunningTime;
@@ -60,7 +70,6 @@ public class BlockAnalysisResult {
         this.BlockThroughput = BlockThroughput;
     }
 
-
     public double getAverageLatency() {
         return AverageLatency;
     }
@@ -83,6 +92,20 @@ public class BlockAnalysisResult {
 
     public void setMinimumLatency(long MinimumLatency) {
         this.MinimumLatency = MinimumLatency;
+    }
+
+    @Override
+    public String toString() {
+        return "========================================\n"
+                + "BlockThroughput:" + this.BlockThroughput + "\n"
+                + "AverageLatency:" + this.AverageLatency + "\n"
+                + "MaximumLatency:" + this.MaximumLatency + "\n"
+                + "MinimumLatency:" + this.MinimumLatency + "\n"
+                + "workdoneAmount:" + this.workdoneAmount + "\n"
+                + "workfailAmount:" + this.workfailAmount + "\n"
+                
+                + "blockRunningTime:" + this.blockRunningTime + "\n"
+                + "======================================\n";
     }
 
 }

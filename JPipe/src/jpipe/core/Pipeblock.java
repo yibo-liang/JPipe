@@ -23,7 +23,7 @@
  */
 package jpipe.core;
 
-import java.util.Collection;
+import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import jpipe.dynamic.Analysis.BlockAnalyser;
@@ -36,7 +36,7 @@ import jpipe.interfaceclass.WorkerInterface;
  */
 public class Pipeblock implements Runnable {
 
-    private Collection<BufferInterface> buffers;
+    private ArrayList<BufferInterface> buffers;
     private SectionManager manager;
     private BlockAnalyser analyser;
 
@@ -46,6 +46,10 @@ public class Pipeblock implements Runnable {
     private boolean Running = true;
 
     private long worktimer;
+
+    public void setAnalyser(BlockAnalyser analyser) {
+        this.analyser = analyser;
+    }
 
     public boolean isPausing() {
         return Pausing;
@@ -67,8 +71,9 @@ public class Pipeblock implements Runnable {
         this.worker = worker;
     }
 
-    public Pipeblock(WorkerInterface worker, Collection<BufferInterface> buffers) {
-        this.buffers=buffers;
+    public Pipeblock(WorkerInterface worker, ArrayList<BufferInterface> buffers) {
+        this.buffers = buffers;
+        this.worker = worker;
     }
 
     @Override
@@ -89,8 +94,12 @@ public class Pipeblock implements Runnable {
                     }
                 }
                 WorkStart();
-                this.worker.work(this.buffers);
-                WorkFinish();
+                //System.out.println(this.worker);
+                int result = this.worker.work(this.buffers);
+                if (result == 1) {
+                    WorkFinish();
+                }else
+                    WorkFail();
             }
         }
 
@@ -104,6 +113,12 @@ public class Pipeblock implements Runnable {
         long latency = System.nanoTime() - worktimer;
         if (analyser != null) {
             analyser.workdone(latency);
+        }
+    }
+
+    private void WorkFail() {
+        if (analyser != null) {
+            analyser.workfail();
         }
     }
 }

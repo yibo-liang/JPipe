@@ -38,27 +38,22 @@ import jpipe.abstractclass.TPBuffer;
  * @author Yibo
  * @param <T>
  */
-public class QBufferLockfree<T> extends TPBuffer {
+public class QBufferLockfree<E> extends TPBuffer {
 
-    T[] buffer;
-    int buffersize;
+    E[] buffer;
+    int buffersize = 20;
     //head is the index of element being peeked//polled
     private int head = 0;
 
     private int tail = 0;
-     
-    
-    public QBufferLockfree(Class<T> c, int size) {
 
-        final T[] tempbuffer = (T[]) Array.newInstance(c, size);
-        this.buffer = tempbuffer;
-
+    public QBufferLockfree(int size) {
+        this.buffer = (E[]) new Object[size];
     }
 
-    public QBufferLockfree(Class<T> c) {
+    public QBufferLockfree() {
 
-        final T[] tempbuffer = (T[]) Array.newInstance(c, 20);
-        this.buffer = tempbuffer;
+        this(20);
 
     }
 
@@ -67,7 +62,7 @@ public class QBufferLockfree<T> extends TPBuffer {
 
         int nextTail = (tail + 1) % buffersize;
         if (head != nextTail) {
-            buffer[tail] = (T) obj;
+            buffer[tail] = (E) obj;
             tail = nextTail;
             return true;
         }
@@ -75,7 +70,7 @@ public class QBufferLockfree<T> extends TPBuffer {
     }
 
     @Override
-    public T poll() {
+    public E poll() {
         int nextHead = (head + 1) % buffersize;
         if (tail != head) {
             head = nextHead;
@@ -86,7 +81,7 @@ public class QBufferLockfree<T> extends TPBuffer {
     }
 
     @Override
-    public T peek() {
+    public E peek() {
         if (tail != head) {
             return buffer[head];
         }
@@ -111,7 +106,7 @@ public class QBufferLockfree<T> extends TPBuffer {
     }
 
     @Override
-    public List<T> pollAll() {
+    public List<E> pollAll() {
         //not allowed because a single consumer should not need to poll all elements
         return null;
     }

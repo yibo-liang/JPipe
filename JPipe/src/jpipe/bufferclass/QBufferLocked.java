@@ -39,18 +39,18 @@ import jpipe.abstractclass.TPBuffer;
  * @author Yibo
  * @param <T>
  */
-public class QBufferLocked<T> extends TPBuffer {
+public class QBufferLocked<E> extends TPBuffer {
 
-    private final Queue<T> queue;
+    private final Queue<E> queue;
     private int maxsize = 0;
     private int count = 0;
 
     public QBufferLocked() {
-        this.maxsize = 10;
+        this.maxsize = 0;
         queue = new LinkedList<>();
     }
 
-    public QBufferLocked(Class<T> c, int maxsize) {
+    public QBufferLocked( int maxsize) {
         this.maxsize = maxsize;
         queue = new LinkedList<>();
     }
@@ -60,13 +60,13 @@ public class QBufferLocked<T> extends TPBuffer {
 
         if (maxsize > 0) {
             if (queue.size() < maxsize) {
-                queue.add((T) obj);
+                queue.add((E) obj);
 
             } else {
                 return false;
             }
         } else {
-            queue.add((T) obj);
+            queue.add((E) obj);
 
         }
         count++;
@@ -74,14 +74,14 @@ public class QBufferLocked<T> extends TPBuffer {
     }
 
     @Override
-    public synchronized T poll() {
+    public synchronized E poll() {
         count--;
         return queue.poll();
 
     }
 
     @Override
-    public synchronized T peek() {
+    public synchronized E peek() {
         return queue.peek();
     }
 
@@ -108,8 +108,8 @@ public class QBufferLocked<T> extends TPBuffer {
     }
 
     @Override
-    public synchronized List<T> pollAll() {
-        List<T> result = new ArrayList<>(queue);
+    public synchronized List<E> pollAll() {
+        List<E> result = new ArrayList<>(queue);
         count = 0;
         queue.clear();
         return result;

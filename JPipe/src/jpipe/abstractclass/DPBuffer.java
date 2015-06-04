@@ -31,13 +31,13 @@ import jpipe.interfaceclass.BufferInterface;
  * @author Yibo
  * @param <T>
  */
-public abstract class DPBuffer<T> implements BufferInterface {
+public abstract class DPBuffer<E> implements BufferInterface {
     
-    public abstract boolean push(Object callerKey,T obj);
+    public abstract boolean push(Object callerKey,E obj);
 
-    public abstract T poll(Object callerKey);
+    public abstract E poll(Object callerKey);
 
-    public abstract T peek(Object callerKey);
+    public abstract E peek(Object callerKey);
 
     public abstract void clear(Object callerKey);
 
