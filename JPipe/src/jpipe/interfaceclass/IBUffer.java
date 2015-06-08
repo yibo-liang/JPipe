@@ -28,6 +28,6 @@ package jpipe.interfaceclass;
  * @author yl9
  * @param <E>
  */
-public interface BufferInterface<E> {
+public interface IBUffer<E> {
     
 }

@@ -25,40 +25,49 @@ package jpipe.dynamic.Analysis;
 
 /**
  *
- * @author Yibo
+ * @author yl9
  */
 public class SectionAnalysisResult {
 
-    private double SectionThroughput;
-    private int RunningThreads;
-    private int PausedThreads;
+    private double BlockThroughput;
     private double AverageLatency;
     private long MaximumLatency;
     private long MinimumLatency;
     private int workdoneAmount;
+    private int workfailAmount;
 
-    public double getSectionThroughput() {
-        return SectionThroughput;
+    private long blockRunningTime;
+
+    public int getWorkfailAmount() {
+        return workfailAmount;
     }
 
-    public void setSectionThroughput(double SectionThroughput) {
-        this.SectionThroughput = SectionThroughput;
+    public void setWorkfailAmount(int workfailAmount) {
+        this.workfailAmount = workfailAmount;
     }
 
-    public int getRunningThreads() {
-        return RunningThreads;
+    public long getBlockRunningTime() {
+        return blockRunningTime;
     }
 
-    public void setRunningThreads(int RunningThreads) {
-        this.RunningThreads = RunningThreads;
+    public void setBlockRunningTime(long blockRunningTime) {
+        this.blockRunningTime = blockRunningTime;
     }
 
-    public int getPausedThreads() {
-        return PausedThreads;
+    public int getWorkdoneAmount() {
+        return workdoneAmount;
     }
 
-    public void setPausedThreads(int PausedThreads) {
-        this.PausedThreads = PausedThreads;
+    public void setWorkdoneAmount(int workdoneAmount) {
+        this.workdoneAmount = workdoneAmount;
+    }
+
+    public double getBlockThroughput() {
+        return BlockThroughput;
+    }
+
+    public void setBlockThroughput(double BlockThroughput) {
+        this.BlockThroughput = BlockThroughput;
     }
 
     public double getAverageLatency() {
@@ -85,13 +94,18 @@ public class SectionAnalysisResult {
         this.MinimumLatency = MinimumLatency;
     }
 
-    public int getWorkdoneAmount() {
-        return workdoneAmount;
+    @Override
+    public String toString() {
+        return "========================================\n"
+                + "BlockThroughput:" + this.BlockThroughput + "\n"
+                + "AverageLatency:" + this.AverageLatency + "\n"
+                + "MaximumLatency:" + this.MaximumLatency + "\n"
+                + "MinimumLatency:" + this.MinimumLatency + "\n"
+                + "workdoneAmount:" + this.workdoneAmount + "\n"
+                + "workfailAmount:" + this.workfailAmount + "\n"
+                
+                + "blockRunningTime:" + this.blockRunningTime + "\n"
+                + "======================================\n";
     }
 
-    public void setWorkdoneAmount(int workdoneAmount) {
-        this.workdoneAmount = workdoneAmount;
-    }
-    
-    
 }

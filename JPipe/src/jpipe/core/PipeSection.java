@@ -23,40 +23,31 @@
  */
 package jpipe.core;
 
-import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import jpipe.dynamic.Analysis.BlockAnalyser;
-import jpipe.interfaceclass.BufferInterface;
-import jpipe.interfaceclass.WorkerInterface;
+import jpipe.dynamic.Analysis.SectionAnalyser;
+import jpipe.interfaceclass.IBUffer;
+import jpipe.interfaceclass.IWorker;
 
 /**
  *
  * @author Yibo
  */
-public class Pipeblock implements Runnable {
+public class PipeSection implements Runnable {
 
-    private ArrayList<BufferInterface> buffers;
-    private SectionManager manager;
-    private BlockAnalyser analyser;
+    private IBUffer[] buffers;
+    private ConcurrentPipes manager;
+    private SectionAnalyser analyser;
 
-    private WorkerInterface worker;
+    private IWorker worker;
 
-    private boolean Pausing = false;
     private boolean Running = true;
+    private boolean Pausing = false;
 
     private long worktimer;
 
-    public void setAnalyser(BlockAnalyser analyser) {
+    public void setAnalyser(SectionAnalyser analyser) {
         this.analyser = analyser;
-    }
-
-    public boolean isPausing() {
-        return Pausing;
-    }
-
-    public void setPausing(boolean isPausing) {
-        this.Pausing = isPausing;
     }
 
     public boolean isRunning() {
@@ -67,40 +58,55 @@ public class Pipeblock implements Runnable {
         this.Running = isRunning;
     }
 
-    public synchronized void setWorker(WorkerInterface worker) {
+    public synchronized void setWorker(IWorker worker) {
         this.worker = worker;
     }
 
-    public Pipeblock(WorkerInterface worker, ArrayList<BufferInterface> buffers) {
+    public PipeSection(IWorker worker, IBUffer[] buffers) {
         this.buffers = buffers;
         this.worker = worker;
+    }
+
+    public void pause() {
+        this.Pausing = true;
+    }
+
+    public void resume() {
+        synchronized (this) {
+            this.Pausing = false;
+            notifyAll();
+        }
     }
 
     @Override
     public void run() {
 
-        synchronized (this) {
-            if (analyser != null) {
-                analyser.BlockStart();
-            }
-            while (manager == null || Running) {
-                // handle pause
-                // pause can only happen before a work, not while it is working
-                if (Pausing) {
+        if (analyser != null) {
+            analyser.BlockStart();
+        }
+        while (manager == null || Running) {
+            synchronized (this) {
+                while (Pausing) {
                     try {
+
                         wait();
+
                     } catch (InterruptedException ex) {
-                        Logger.getLogger(Pipeblock.class.getName()).log(Level.SEVERE, null, ex);
+                        Logger.getLogger(PipeSection.class.getName()).log(Level.SEVERE, null, ex);
+                        Pausing = false;// if pausing failed, the process would not pass to prevent deadlock
                     }
+
                 }
-                WorkStart();
-                //System.out.println(this.worker);
-                int result = this.worker.work(this.buffers);
-                if (result == 1) {
-                    WorkFinish();
-                }else
-                    WorkFail();
             }
+            WorkStart();
+            //System.out.println(this.worker);
+            boolean result = this.worker.work(this.buffers);
+            if (result == true) {
+                WorkFinish();
+            } else {
+                WorkFail();
+            }
+
         }
 
     }

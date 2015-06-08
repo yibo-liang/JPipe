@@ -37,14 +37,14 @@ import jpipe.abstractclass.TPBuffer;
  *
  *
  * @author Yibo
- * @param <T>
+ * @param <E>
  */
 public class QBufferLocked<E> extends TPBuffer {
 
     private final Queue<E> queue;
     private int maxsize = 0;
     private int count = 0;
-
+    
     public QBufferLocked() {
         this.maxsize = 0;
         queue = new LinkedList<>();

@@ -106,7 +106,8 @@ public class DPBufferLockfree<T> extends DPBuffer {
 
     /**
      * Push method takes a key to identify caller, then push the element object
-     * into corresponding array block.
+     * into corresponding array block. The caller object mush be immutable with its 
+     * hash and equal functions
      *
      * The push will try all slot this caller has, if non of the slot is empty,
      * then return false;

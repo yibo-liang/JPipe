@@ -24,14 +24,14 @@
 package jpipe.abstractclass;
 
 import java.util.List;
-import jpipe.interfaceclass.BufferInterface;
+import jpipe.interfaceclass.IBUffer;
 
 /**
  *
  * @author Yibo
  * @param <T>
  */
-public abstract class DPBuffer<E> implements BufferInterface {
+public abstract class DPBuffer<E> implements IBUffer {
     
     public abstract boolean push(Object callerKey,E obj);
 

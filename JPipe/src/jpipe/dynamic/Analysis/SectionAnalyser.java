@@ -27,7 +27,7 @@ package jpipe.dynamic.Analysis;
  *
  * @author Yibo
  */
-public class BlockAnalyser {
+public class SectionAnalyser {
 
     private int workdoneAmount;
     private int workfaileAmount;
@@ -35,10 +35,15 @@ public class BlockAnalyser {
     private long LastLatency;
     private long maxLatency;
     private long minLatency;
+    private long totalWorkingLatency;
     private double meanLatency;
     private long blocktime;
     private long blockStartTime;
 
+    public SectionAnalyser(){
+        this.HardReset();
+    }
+    
     public void BlockStart() {
         blockStartTime = System.nanoTime();
     }
@@ -54,6 +59,7 @@ public class BlockAnalyser {
 
     public void workdone(long latency) {
         System.out.println("Workdone!" + latency);
+        totalWorkingLatency += latency;
         workdoneAmount++;
         if (latency > maxLatency) {
             System.out.println("new max!");
@@ -62,7 +68,7 @@ public class BlockAnalyser {
         if (latency < minLatency) {
             minLatency = latency;
         }
-        meanLatency = meanLatency + ((double) latency - meanLatency) / (double) workdoneAmount;
+        meanLatency = totalWorkingLatency / (double) workdoneAmount;
 
     }
 
@@ -85,23 +91,23 @@ public class BlockAnalyser {
         blockStartTime = System.nanoTime();
     }
 
-    public BlockAnalysisResult analyse() {
+    public SectionAnalysisResult analyseNano() {
         long timespent = this.getBlockRunningTime();
-        BlockAnalysisResult result = new BlockAnalysisResult();
+        SectionAnalysisResult result = new SectionAnalysisResult();
         result.setAverageLatency(meanLatency);
         result.setMaximumLatency(maxLatency);
         result.setMinimumLatency(minLatency);
         result.setBlockThroughput(workdoneAmount / (double) timespent);
         result.setWorkdoneAmount(workdoneAmount);
         result.setBlockRunningTime(getBlockRunningTime());
-        SoftReset();
+        //SoftReset();
         return result;
 
     }
 
-    public BlockAnalysisResult analyseMs() {
+    public SectionAnalysisResult analyseMs() {
         long timespent = this.getBlockRunningTime();
-        BlockAnalysisResult result = new BlockAnalysisResult();
+        SectionAnalysisResult result = new SectionAnalysisResult();
         result.setAverageLatency(meanLatency / (Math.pow(10, 6)));
         result.setMaximumLatency((long) (maxLatency / (Math.pow(10, 6))));
         result.setMinimumLatency((long) (minLatency / (Math.pow(10, 6))));
@@ -110,7 +116,7 @@ public class BlockAnalyser {
         result.setWorkfailAmount(workfaileAmount);
 
         result.setBlockRunningTime((long) ((getBlockRunningTime()) / (Math.pow(10, 6))));
-        SoftReset();
+        //SoftReset();
         return result;
 
     }

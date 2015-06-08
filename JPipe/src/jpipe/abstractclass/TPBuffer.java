@@ -24,7 +24,7 @@
 package jpipe.abstractclass;
 
 import java.util.List;
-import jpipe.interfaceclass.BufferInterface;
+import jpipe.interfaceclass.IBUffer;
 
 /**
  * This is a buffer used for task parallelism
@@ -32,7 +32,7 @@ import jpipe.interfaceclass.BufferInterface;
  * @author Yibo
  * @param <E>
  */
-public abstract class TPBuffer<E> implements BufferInterface {
+public abstract class TPBuffer<E> implements IBUffer {
     
     public abstract boolean push(E obj);
 

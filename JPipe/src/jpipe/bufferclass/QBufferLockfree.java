@@ -23,7 +23,6 @@
  */
 package jpipe.bufferclass;
 
-import java.lang.reflect.Array;
 import java.util.List;
 import jpipe.abstractclass.TPBuffer;
 
@@ -36,7 +35,7 @@ import jpipe.abstractclass.TPBuffer;
  * design, the actual quantity of elements would be size-1
  *
  * @author Yibo
- * @param <T>
+ * @param <E>
  */
 public class QBufferLockfree<E> extends TPBuffer {
 

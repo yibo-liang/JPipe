@@ -23,14 +23,14 @@
  */
 package jpipe.abstractclass;
 
-import jpipe.interfaceclass.WorkerInterface;
+import jpipe.interfaceclass.IWorker;
 
 /**
  * An abstract class for Worker, for the sake of immutability
  *
  * @author yl9
  */
-public abstract class Worker implements WorkerInterface {
+public abstract class Worker implements IWorker {
 
     private final int hashCache;
 
