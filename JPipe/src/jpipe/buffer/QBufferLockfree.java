@@ -21,7 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package jpipe.bufferclass;
+package jpipe.buffer;
 
 import java.util.List;
 import jpipe.abstractclass.TPBuffer;

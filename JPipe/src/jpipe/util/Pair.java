@@ -21,38 +21,60 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package jpipe.abstractclass;
-
-import jpipe.interfaceclass.IWorker;
+package jpipe.util;
 
 /**
- * An abstract class for Worker, for the sake of immutability
  *
  * @author yl9
  */
-public abstract class Worker implements IWorker {
+public class Pair<A, B> {
 
-    private final int hashCache;
+    private final A first;
+    private final B second;
 
-    public Worker() {
+    public Pair(A first, B second) {
         super();
-        this.hashCache = (new Object()).hashCode();
+        this.first = first;
+        this.second = second;
     }
 
     @Override
     public int hashCode() {
-        return hashCache;
+        int hashFirst = first != null ? first.hashCode() : 0;
+        int hashSecond = second != null ? second.hashCode() : 0;
+        return combineHash(hashFirst, hashSecond);
+    }
+
+    private int combineHash(int hash1, int hash2) {
+        return hash1 * 31 + hash2;
     }
 
     @Override
-    public boolean equals(Object obj) {
-        if (obj == null) {
-            return false;
+    public boolean equals(Object other) {
+        if (other instanceof Pair) {
+            Pair otherPair = (Pair) other;
+            return ((this.first == otherPair.first
+                    || (this.first != null && otherPair.first != null
+                    && this.first.equals(otherPair.first)))
+                    && (this.second == otherPair.second
+                    || (this.second != null && otherPair.second != null
+                    && this.second.equals(otherPair.second))));
         }
-        if (getClass() != obj.getClass()) {
-            return false;
-        }
-        final Worker other = (Worker) obj;
-        return this.hashCode() == other.hashCode();
+
+        return false;
     }
+
+    @Override
+    public String toString() {
+        return "(" + first + ", " + second + ")";
+    }
+
+    public A getFirst() {
+        return first;
+    }
+
+    public B getSecond() {
+        return second;
+    }
+
 }

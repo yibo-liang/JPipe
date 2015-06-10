@@ -35,7 +35,7 @@ import jpipe.dynamic.Analysis.SectionAnalyser;
 import jpipe.dynamic.Analysis.SectionAnalysisResult;
 import jpipe.dynamic.Analysis.ConcurrentSectionAnalysisResult;
 import jpipe.abstractclass.TPBuffer;
-import jpipe.abstractclass.Worker;
+import jpipe.abstractclass.DefaultWorker;
 import jpipe.abstractclass.WorkerFactory;
 import jpipe.interfaceclass.IWorker;
 
