@@ -24,7 +24,7 @@
 package jpipe.buffer;
 
 import java.util.List;
-import jpipe.abstractclass.TPBuffer;
+import jpipe.abstractclass.buffer.Buffer;
 
 /**
  * This class implements a Queue buffer in a lock free manner To use this buffer
@@ -37,7 +37,7 @@ import jpipe.abstractclass.TPBuffer;
  * @author Yibo
  * @param <E>
  */
-public class QBufferLockfree<E> extends TPBuffer {
+public class LFBuffer<E> extends Buffer {
 
     E[] buffer;
     int buffersize = 20;
@@ -46,19 +46,19 @@ public class QBufferLockfree<E> extends TPBuffer {
 
     private int tail = 0;
 
-    public QBufferLockfree(int size) {
+    public LFBuffer(int size) {
         this.buffer = (E[]) new Object[size];
     }
 
-    public QBufferLockfree() {
+    public LFBuffer() {
 
         this(20);
 
     }
 
     @Override
-    public boolean push(Object obj) {
-
+    public boolean push(Object pusher,Object obj) {
+        register(pusher, Buffer.PRODUCER);
         int nextTail = (tail + 1) % buffersize;
         if (head != nextTail) {
             buffer[tail] = (E) obj;
@@ -69,7 +69,8 @@ public class QBufferLockfree<E> extends TPBuffer {
     }
 
     @Override
-    public E poll() {
+    public E poll(Object poller) {
+        register(poller, Buffer.CONSUMER);
         int nextHead = (head + 1) % buffersize;
         if (tail != head) {
             head = nextHead;
@@ -80,7 +81,8 @@ public class QBufferLockfree<E> extends TPBuffer {
     }
 
     @Override
-    public E peek() {
+    public E peek(Object peeker) {
+        register(peeker, Buffer.CONSUMER);
         if (tail != head) {
             return buffer[head];
         }
@@ -93,21 +95,22 @@ public class QBufferLockfree<E> extends TPBuffer {
     }
 
     @Override
-    public int getMaxsize() {
+    public int getSize() {
         return buffersize;
     }
 
     @Override
-    public boolean setMaxsize(int maxsize) {
+    public boolean setSize(int maxsize) {
         //not allowed, lock free pattern requires no change from a third thread
         //and producer and consumer should not change it
         return false;
     }
 
     @Override
-    public List<E> pollAll() {
-        //not allowed because a single consumer should not need to poll all elements
-        return null;
+    public int getCount() {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
+
+
 
 }

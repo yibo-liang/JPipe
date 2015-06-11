@@ -58,11 +58,11 @@ public class SectionAnalyser {
     }
 
     public void workdone(long latency) {
-        System.out.println("Workdone!" + latency);
+        //System.out.println("Workdone!" + latency);
         totalWorkingLatency += latency;
         workdoneAmount++;
         if (latency > maxLatency) {
-            System.out.println("new max!");
+            //System.out.println("new max!");
             maxLatency = latency;
         }
         if (latency < minLatency) {
@@ -85,7 +85,7 @@ public class SectionAnalyser {
 
     }
 
-    public void HardReset() {
+    public final void HardReset() {
         this.SoftReset();
         workdoneAmount = 0;
         blockStartTime = System.nanoTime();

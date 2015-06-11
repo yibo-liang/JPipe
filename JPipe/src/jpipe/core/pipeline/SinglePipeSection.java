@@ -19,32 +19,50 @@
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
+ * THE SOFTWARE.3
  */
-package jpipe.abstractclass;
+package jpipe.core.pipeline;
 
-import java.util.List;
-import jpipe.interfaceclass.IBUffer;
+import jpipe.abstractclass.PipeSection;
+import jpipe.abstractclass.worker.Worker;
+import jpipe.interfaceclass.IPipeSection;
 
 /**
- * This is a buffer used for task parallelism
  *
  * @author Yibo
- * @param <E>
  */
-public abstract class TPBuffer<E> implements IBUffer {
-    
-    public abstract boolean push(E obj);
+public class SinglePipeSection extends PipeSection
+        implements Runnable {
 
-    public abstract E poll();
+    public SinglePipeSection(Worker worker) {
+        this.setWorker(worker);
+    }
 
-    public abstract E peek();
+    @Override
+    public void run() {
 
-    public abstract void clear();
+        if (analyser != null) {
+            analyser.BlockStart();
+        }
+        while (isRunning()) {
+            //the worker may be awoken by follower consumer when resting a pushing job to output buffer
+            // the laziness is set to 0 for pushing this for once, then the worker goes back lazy
+            //set the laziness back, "People don't change!" -- by House
+            this.setLaziness(9000);
+            WorkStart();
+            
+            int result = this.getWorker().work();
+            WorkFinish(result);
+            
+        }
 
-    public abstract int getMaxsize();
+    }
 
-    public abstract boolean setMaxsize(int maxsize);
-    
-    public abstract  List<E> pollAll() ;
+    @Override
+    public void getNotifiedByOther() {
+        this.resume();
+        this.getWorker().getNotified();
+        
+    }
+
 }

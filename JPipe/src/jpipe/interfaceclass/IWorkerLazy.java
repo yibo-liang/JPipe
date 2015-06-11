@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright 2015 yl9.
+ * Copyright 2015 Yibo Liang.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,32 +21,18 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package jpipe.abstractclass;
+package jpipe.interfaceclass;
 
-import java.util.List;
-import jpipe.interfaceclass.IBUffer;
+import jpipe.abstractclass.buffer.Buffer;
+import jpipe.buffer.util.BufferStore;
 
 /**
  *
  * @author Yibo
- * @param <T>
  */
-public abstract class DPBuffer<E> implements IBUffer {
-    
-    public abstract boolean push(Object callerKey,E obj);
+public interface IWorkerLazy extends IWorker{
 
-    public abstract E poll(Object callerKey);
+    public BufferStore getBufferStore();
 
-    public abstract E peek(Object callerKey);
-
-    public abstract void clear(Object callerKey);
-
-    public abstract int getDepth();
-
-    public abstract boolean setDepth(int depth);
-    
-    public abstract int register(Object callerKey, int identity);
-    
-    public abstract void initialise();
-    
+    public void setBufferStore(BufferStore bufferStore);
 }

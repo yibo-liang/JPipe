@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright 2015 yl9.
+ * Copyright 2015 Yibo Liang.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,12 +23,15 @@
  */
 package jpipe.interfaceclass;
 
-
+import jpipe.abstractclass.buffer.Buffer;
+import jpipe.buffer.util.BufferStore;
 
 /**
  *
  * @author Yibo
  */
 public interface IWorker {
-    public abstract boolean work(IBUffer[] buffers);
+
+    public abstract int work();
+
 }

@@ -23,11 +23,9 @@
  */
 package jpipe.buffer;
 
-import java.util.ArrayList;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.Queue;
-import jpipe.abstractclass.TPBuffer;
+import jpipe.abstractclass.buffer.Buffer;
 
 /**
  * This class is a locked implementation of buffer queue It has a maximum size
@@ -39,24 +37,36 @@ import jpipe.abstractclass.TPBuffer;
  * @author Yibo
  * @param <E>
  */
-public class QBufferLocked<E> extends TPBuffer {
+public class LUBuffer<E> extends Buffer {
 
     private final Queue<E> queue;
     private int maxsize = 0;
     private int count = 0;
-    
-    public QBufferLocked() {
+
+    public LUBuffer() {
         this.maxsize = 0;
         queue = new LinkedList<>();
     }
 
-    public QBufferLocked( int maxsize) {
+    public LUBuffer(int maxsize) {
         this.maxsize = maxsize;
         queue = new LinkedList<>();
     }
 
+    private int itemCount = 0;
+
+    public int getItemCount() {
+        return itemCount;
+    }
+
     @Override
-    public synchronized boolean push(Object obj) {
+    public int getCount() {
+        return this.count;
+    }
+
+    @Override
+    public synchronized boolean push(Object pusher, Object obj) {
+        register(pusher, Buffer.PRODUCER);
 
         if (maxsize > 0) {
             if (queue.size() < maxsize) {
@@ -70,18 +80,34 @@ public class QBufferLocked<E> extends TPBuffer {
 
         }
         count++;
+        itemCount++;
+        try {
+            this.notifyConsumer();
+        } catch (Exception ex) {
+
+        }
         return true;
     }
 
     @Override
-    public synchronized E poll() {
-        count--;
-        return queue.poll();
+    public synchronized E poll(Object poller) {
+        register(poller, Buffer.CONSUMER);
+        if (count > 0) {
+            count--;
+            try {
+                this.notifyProduer();
+            } catch (Exception ex) {
 
+            }
+            return queue.poll();
+        } else {
+            return null;
+        }
     }
 
     @Override
-    public synchronized E peek() {
+    public synchronized E peek(Object peeker) {
+        register(peeker, Buffer.CONSUMER);
         return queue.peek();
     }
 
@@ -89,15 +115,20 @@ public class QBufferLocked<E> extends TPBuffer {
     public synchronized void clear() {
         count = 0;
         queue.clear();
+        try {
+            this.notifyProduer();
+        } catch (Exception ex) {
+
+        }
     }
 
     @Override
-    public synchronized int getMaxsize() {
+    public synchronized int getSize() {
         return this.maxsize;
     }
 
     @Override
-    public synchronized boolean setMaxsize(int maxsize) {
+    public synchronized boolean setSize(int maxsize) {
         //only change when the new size is larger than 
         //the count of the element in the queue
         if (maxsize >= count) {
@@ -105,14 +136,6 @@ public class QBufferLocked<E> extends TPBuffer {
             return true;
         }
         return false;
-    }
-
-    @Override
-    public synchronized List<E> pollAll() {
-        List<E> result = new ArrayList<>(queue);
-        count = 0;
-        queue.clear();
-        return result;
     }
 
 }

@@ -21,45 +21,21 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package jpipe.abstractclass;
-
-import jpipe.interfaceclass.IWorker;
+package jpipe.interfaceclass;
 
 /**
- * An abstract class for Worker, for the sake of immutability
  *
  * @author yl9
+ * @param <E>
  */
-public abstract class DefaultWorker implements IWorker {
+public interface IBuffer<E> {
 
-    private final int hashCache;
+    public int getCount();
 
-     @SuppressWarnings("empty-statement")
-    public void blockedpush(TPBuffer bf, Object item) {
-        while (!bf.push(item)) {
+    public E peek(Object callerKey);
 
-        };
-    }
-    
-    public DefaultWorker() {
-        super();
-        this.hashCache = (new Object()).hashCode();
-    }
+    public E poll(Object callerKey);
 
-    @Override
-    public int hashCode() {
-        return hashCache;
-    }
+    public boolean push(Object callerKey, Object obj);
 
-    @Override
-    public boolean equals(Object obj) {
-        if (obj == null) {
-            return false;
-        }
-        if (getClass() != obj.getClass()) {
-            return false;
-        }
-        final DefaultWorker other = (DefaultWorker) obj;
-        return this.hashCode() == other.hashCode();
-    }
 }

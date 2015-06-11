@@ -23,11 +23,9 @@
  */
 package jpipe.buffer;
 
-import java.util.ArrayList;
 import java.util.Deque;
-import java.util.Iterator;
 import java.util.LinkedList;
-import java.util.List;
+import jpipe.abstractclass.buffer.Buffer;
 import jpipe.interfaceclass.IMonitor;
 
 /**
@@ -40,28 +38,29 @@ import jpipe.interfaceclass.IMonitor;
  * @author Yibo
  * @param <E>
  */
-public class MonitoredBufferLocked<E> extends QBufferLocked<E> {
+public class MonitoredLUBuffer<E> extends LUBuffer<E> {
 
     private final Deque<E> queue;
     private int maxsize = 0;
     private int count = 0;
     private IMonitor monitor;
 
-    public MonitoredBufferLocked(IMonitor monitor) {
+    public MonitoredLUBuffer(IMonitor monitor) {
         this.maxsize = 0;
         this.monitor = monitor;
         queue = new LinkedList<>();
     }
 
-    public MonitoredBufferLocked(int maxsize, IMonitor monitor) {
+    public MonitoredLUBuffer(int maxsize, IMonitor monitor) {
         this.maxsize = maxsize;
         this.monitor = monitor;
         queue = new LinkedList<>();
     }
 
     @Override
-    public synchronized boolean push(Object obj) {
+    public synchronized boolean push(Object pusher, Object obj) {
 
+        register(pusher, Buffer.PRODUCER);
         if (maxsize > 0) {
             if (queue.size() < maxsize && monitor.InspectIn(obj)) {
                 queue.add((E) obj);
@@ -79,7 +78,8 @@ public class MonitoredBufferLocked<E> extends QBufferLocked<E> {
     }
 
     @Override
-    public synchronized E poll() {
+    public synchronized E poll(Object poller) {
+        register(poller, Buffer.CONSUMER);
         if (monitor.InspectOut(queue.poll())) {
             count--;
             return queue.poll();
@@ -91,7 +91,8 @@ public class MonitoredBufferLocked<E> extends QBufferLocked<E> {
     }
 
     @Override
-    public synchronized E peek() {
+    public synchronized E peek(Object peeker) {
+        register(peeker, Buffer.CONSUMER);
         if (monitor.InspectOut(queue.poll())) {
             return queue.peek();
         } else {
@@ -107,12 +108,12 @@ public class MonitoredBufferLocked<E> extends QBufferLocked<E> {
     }
 
     @Override
-    public synchronized int getMaxsize() {
+    public synchronized int getSize() {
         return this.maxsize;
     }
 
     @Override
-    public synchronized boolean setMaxsize(int maxsize) {
+    public synchronized boolean setSize(int maxsize) {
         //only change when the new size is larger than 
         //the count of the element in the queue
         if (maxsize >= count) {
@@ -120,11 +121,6 @@ public class MonitoredBufferLocked<E> extends QBufferLocked<E> {
             return true;
         }
         return false;
-    }
-
-    @Override
-    public synchronized List<E> pollAll() {
-        throw new UnsupportedOperationException("Cannot poll all from a Monitored Buffer! Should only use poll with loop");
     }
 
 }

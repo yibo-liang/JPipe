@@ -3,15 +3,14 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package jpipe.abstractclass;
-
-import jpipe.interfaceclass.IWorkerFactory;
+package jpipe.interfaceclass;
 
 /**
  *
  * @author yl9
- * @param <E>
  */
-public abstract class WorkerFactory<E> implements IWorkerFactory{
-    public abstract E create();
+public interface IPipeSectionLazy extends IPipeSection {
+
+    public abstract void getNotifiedByOther();
+
 }

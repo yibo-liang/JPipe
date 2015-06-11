@@ -27,7 +27,7 @@ package jpipe.dynamic.Analysis;
  *
  * @author Yibo
  */
-public class ConcurrentSectionAnalysisResult {
+public class MultiPipeSectionAnalysisResult {
 
     private double SectionThroughput;
     private int RunningThreads;
@@ -36,6 +36,29 @@ public class ConcurrentSectionAnalysisResult {
     private long MaximumLatency;
     private long MinimumLatency;
     private int workdoneAmount;
+    private long sectionRunningTime;
+
+    @Override
+    public String toString() {
+        String result = "Section Throughput: " + this.SectionThroughput + "\n";
+        result += "Section Running Threads: " + this.RunningThreads + "\n";
+        result += "Section Paused Threads: " + this.PausedThreads + "\n";
+        result += "Section Average Latency: " + this.AverageLatency + "\n";
+        result += "Section Maximum Latency: " + this.MaximumLatency + "\n";
+        result += "Section Minimum Latency: " + this.MinimumLatency + "\n";
+        result += "Section workdone Amount: " + this.workdoneAmount + "\n";
+        result += "Section section Running Time: " + this.sectionRunningTime + "\n";
+
+        return result;
+    }
+
+    public long getSectionRunningTime() {
+        return sectionRunningTime;
+    }
+
+    public void setSectionRunningTime(long sectionRunningTime) {
+        this.sectionRunningTime = sectionRunningTime;
+    }
 
     public double getSectionThroughput() {
         return SectionThroughput;
@@ -92,6 +115,5 @@ public class ConcurrentSectionAnalysisResult {
     public void setWorkdoneAmount(int workdoneAmount) {
         this.workdoneAmount = workdoneAmount;
     }
-    
-    
+
 }

@@ -25,7 +25,8 @@ package jpipe.buffer;
 
 import java.lang.reflect.Array;
 import java.util.HashMap;
-import jpipe.abstractclass.DPBuffer;
+import jpipe.abstractclass.buffer.Buffer;
+import jpipe.interfaceclass.IBuffer;
 
 /**
  * DPBuffer = Data parallelism buffer This buffer is a implementation of data
@@ -38,15 +39,14 @@ import jpipe.abstractclass.DPBuffer;
  * p and c are the number of producer and consumer respectively
  *
  * @author yl9
- * @param <T>
+ * @param <E>
  */
-public class DPBufferLockfree<T> extends DPBuffer {
+public class DataParallelLFBuffer<E> extends Buffer implements IBuffer {
 
-    T[][] Buffer;
+    E[][] Buffer;
     private final int defaultDepth = 5;
     private boolean isInitialised = false;
-    private final int PRODUCER = 1;
-    private final int CONSUMER = 2;
+
     private final Class buferClass;
 
     private HashMap<Object, Integer> producers;
@@ -89,7 +89,7 @@ public class DPBufferLockfree<T> extends DPBuffer {
     }
 
     //public methods
-    public DPBufferLockfree(Class<T> c) {
+    public DataParallelLFBuffer(Class<E> c) {
         buferClass = c;
     }
 
@@ -131,7 +131,7 @@ public class DPBufferLockfree<T> extends DPBuffer {
             //Vertical increment 
             int nextTail = (currentTail + 1) % depth;
             if (currentHead != nextTail) {
-                this.Buffer[pIndex][currentTail] = (T) obj;
+                this.Buffer[pIndex][currentTail] = (E) obj;
                 this.tails[pNumber] = nextTail;
 
                 return true;
@@ -150,8 +150,8 @@ public class DPBufferLockfree<T> extends DPBuffer {
      * @return
      */
     @Override
-    public T poll(Object callerKey) {
-        T result = null;
+    public E poll(Object callerKey) {
+        E result = null;
         int cNumber = this.consumers.get(callerKey);
         int cIndex = this.cIndices[cNumber];
 
@@ -168,8 +168,8 @@ public class DPBufferLockfree<T> extends DPBuffer {
     }
 
     @Override
-    public T peek(Object callerKey) {
-        T result = null;
+    public E peek(Object callerKey) {
+        E result = null;
         int cNumber = this.consumers.get(callerKey);
         int cIndex = this.cIndices[cNumber];
 
@@ -185,23 +185,18 @@ public class DPBufferLockfree<T> extends DPBuffer {
     }
 
     @Override
-    public int getDepth() {
+    public int getSize() {
         return this.depth;
     }
 
     @Override
-    public synchronized boolean setDepth(int depth) {
+    public synchronized boolean setSize(int depth) {
         if (!isInitialised) {
             this.depth = depth;
             return true;
         } else {
             throw new UnsupportedOperationException("Cannot change depth after initialisation!");
         }
-    }
-
-    @Override
-    public void clear(Object callerKey) {
-        throw new UnsupportedOperationException("Not supported yet.");
     }
 
     /**
@@ -216,7 +211,7 @@ public class DPBufferLockfree<T> extends DPBuffer {
     public synchronized int register(Object callerKey, int identity) {
         //locked to register
         if (isInitialised) {
-            throw new UnsupportedOperationException("Cannot register new object after initialisation!");
+            throw new UnsupportedOperationException("Cannot register new object after initialisation(Any usage of buffer will initialise it.)!");
         }
         if (callerKey != null) {
             if (identity == PRODUCER) {
@@ -242,37 +237,48 @@ public class DPBufferLockfree<T> extends DPBuffer {
      * method no more change of settings can be made to the buffer.
      *
      */
+    private synchronized void tryInitialise() {
+        if (!isInitialised) {
+            //Has to be locked to initialise
+            isInitialised = true;
+            this.width = lcm(pCount, cCount);
+            pBlockSize = width / pCount;
+            cBlockSize = width / cCount;
+
+            this.pIndices = new Integer[this.pCount];
+            this.cIndices = new Integer[this.cCount];
+
+            this.heads = new Integer[this.depth];
+            this.tails = new Integer[this.depth];
+            Buffer = (E[][]) Array.newInstance(buferClass, width, depth);
+
+            //setting up block indices.
+            for (int i = 0; i < pCount; i++) {
+                this.pIndices[i] = i * pBlockSize;
+
+            }
+
+            for (int i = 0; i < cCount; i++) {
+                this.cIndices[i] = i * cBlockSize;
+
+            }
+
+            for (int i = 0; i < width; i++) {
+                this.heads[i] = 0;
+                this.tails[i] = 0;
+            }
+
+            //setting up 
+        }
+    }
+
     @Override
-    public synchronized void initialise() {
-        //Has to be locked to initialise
-        isInitialised = true;
-        this.width = lcm(pCount, cCount);
-        pBlockSize = width / pCount;
-        cBlockSize = width / cCount;
+    public void clear() {
+        throw new UnsupportedOperationException("Not supported in parallel buffer.");
+    }
 
-        this.pIndices = new Integer[this.pCount];
-        this.cIndices = new Integer[this.cCount];
-
-        this.heads = new Integer[this.depth];
-        this.tails = new Integer[this.depth];
-        Buffer = (T[][]) Array.newInstance(buferClass, width, depth);
-
-        //setting up block indices.
-        for (int i = 0; i < pCount; i++) {
-            this.pIndices[i] = i * pBlockSize;
-
-        }
-
-        for (int i = 0; i < cCount; i++) {
-            this.cIndices[i] = i * cBlockSize;
-
-        }
-
-        for (int i = 0; i < width; i++) {
-            this.heads[i] = 0;
-            this.tails[i] = 0;
-        }
-
-        //setting up 
+    @Override
+    public int getCount() {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 }

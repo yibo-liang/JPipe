@@ -21,22 +21,24 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-package jpipe.core;
+package jpipe.core.pipeline;
 
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import jpipe.abstractclass.PipeSection;
 import jpipe.dynamic.Analysis.SectionAnalyser;
 import jpipe.dynamic.Analysis.SectionAnalysisResult;
-import jpipe.dynamic.Analysis.ConcurrentSectionAnalysisResult;
-import jpipe.abstractclass.TPBuffer;
-import jpipe.abstractclass.DefaultWorker;
-import jpipe.abstractclass.WorkerFactory;
+import jpipe.dynamic.Analysis.MultiPipeSectionAnalysisResult;
+import jpipe.abstractclass.buffer.Buffer;
+import jpipe.abstractclass.worker.Worker;
+import jpipe.abstractclass.worker.WorkerFactory;
+import jpipe.buffer.util.BufferStore;
+import jpipe.interfaceclass.IBuffer;
+import jpipe.interfaceclass.IPipeSectionLazy;
 import jpipe.interfaceclass.IWorker;
 
 /**
@@ -44,12 +46,11 @@ import jpipe.interfaceclass.IWorker;
  * @author Yibo
  * @param <E>
  */
-public class ConcurrentPipes {
+public class MultiPipeSection<E extends PipeSection> implements IPipeSectionLazy {
 
-    private final TPBuffer[] buffers;
     private final HashMap<Integer, SectionAnalyser> analysers;
-    private final HashMap<Integer, PipeSection> pipesections;
-    private final WorkerFactory workerFactory;
+    private final HashMap<Integer, SinglePipeSection> pipesections;
+    private final DefaultWorkerFactory<Worker> workerFactory;
     private boolean isStarted = false;
 //each parallel has a threadpool
     ThreadPoolExecutor threadPoolExecutor;
@@ -60,14 +61,44 @@ public class ConcurrentPipes {
     private final int threadNumber_initial;
     private int threadNumber_total = 0;
 
-    public int getThreadNumber_pause() {
-        return threadNumber_pause;
-    }
-    private int threadNumber_pause = 0;
-    private int threadNumber_running = 0;
+    BufferStore bs;
 
-    public int getThreadNumber_actual() {
-        return threadNumber_running;
+    public BufferStore getBs() {
+        return bs;
+    }
+
+    public void setBs(BufferStore bs) {
+        this.bs = bs;
+    }
+
+    public synchronized int getThreadNumber_resting() {
+        int result = 0;
+        for (int i = 1; i <= threadNumber_total; i++) {
+            if (pipesections.get(i).isLazyResting()) {
+                result++;
+            }
+        }
+        return result;
+    }
+
+    public synchronized int getThreadNumber_pausing() {
+        int result = 0;
+        for (int i = 1; i <= threadNumber_total; i++) {
+            if (pipesections.get(i).isPausing()) {
+                result++;
+            }
+        }
+        return result;
+    }
+
+    public synchronized int getThreadNumber_running() {
+        int result = 0;
+        for (int i = 1; i <= threadNumber_total; i++) {
+            if (pipesections.get(i).isRunning()) {
+                result++;
+            }
+        }
+        return result;
     }
 
     public synchronized void setCorePoolSize(int corePoolSize) {
@@ -82,19 +113,19 @@ public class ConcurrentPipes {
         this.keepAliveTime = keepAliveTime;
     }
 
-    public ConcurrentPipes(WorkerFactory wfactory, TPBuffer[] bs) {
+    public MultiPipeSection(WorkerFactory wfactory, BufferStore bs) {
         this.pipesections = new HashMap<>();
         this.analysers = new HashMap<>();
-        this.buffers = bs;
-        this.workerFactory = wfactory;
+
+        this.workerFactory = (DefaultWorkerFactory<Worker>) wfactory;
         this.threadNumber_initial = 5;
     }
 
-    public ConcurrentPipes(WorkerFactory wfactory, TPBuffer[] bs, int thread_number) {
+    public MultiPipeSection(WorkerFactory wfactory, BufferStore bs, int thread_number) {
         this.pipesections = new HashMap<>();
         this.analysers = new HashMap<>();
-        this.buffers = bs;
-        this.workerFactory = wfactory;
+        this.bs = bs;
+        this.workerFactory = (DefaultWorkerFactory<Worker>) wfactory;
         this.threadNumber_initial = thread_number;
     }
 
@@ -110,73 +141,79 @@ public class ConcurrentPipes {
             );
             for (Integer i = 1; i <= threadNumber_initial; i++) {
 
-                AddSection(i);
+                AddPipeSection(i);
 
             }
             isStarted = true;
         }
     }
 
-    private synchronized void AddSection(int index) {
-        System.out.println("adding pip i=" + index);
+    private synchronized void AddPipeSection(int index) {
+        // System.out.println("adding pip i=" + index);
         //following code creates a worker and an analyser class for each
         //pipeline block class.
         // Analysers and threads of Blocks are saved into a hashmap for future reference.
         //pipeline block is then executed in the threadpool
         SectionAnalyser a = new SectionAnalyser();
         analysers.put(index, a);
-        PipeSection pb;
 
-        pb = new PipeSection((IWorker) this.workerFactory.create(), buffers);
+        Worker newWorker = (Worker) this.workerFactory.create();
+        newWorker.setBufferStore(bs);
+        SinglePipeSection pb = new SinglePipeSection(newWorker);
+
+        pb.setAnalyser(a);
+        //newWorker.setWrapPipeSection(pb);
+        pb.setLaziness(3000);
         pipesections.put(index, pb);
 
         threadPoolExecutor.execute(pb);
+
         threadNumber_total++;
-        threadNumber_running++;
+        //System.out.println("Added into pipsecs total=" + threadNumber_total);
 
     }
 
     public synchronized void DecreasePipesBy(int n) {
-        int running = threadNumber_running;
+        int running = getThreadNumber_running();
         //if n is larger or equal to running thread, pause all.
         for (int i = running; i > running - n && i >= 1; i--) {
             System.out.println("pausing " + (i) + " ");
             pipesections.get(i).pause();
 
-            threadNumber_pause++;
-            threadNumber_running--;
         }
     }
 
     public synchronized void IncreasePipesBy(int n) {
         for (int i = 1; i <= n; i++) {
-            if (threadNumber_running < threadNumber_total) {
-                System.out.println("notifying " + (threadNumber_running + 1) + " ");
+            if (getThreadNumber_pausing() > 0) {
+                System.out.println("notifying " + (getThreadNumber_running() + 1) + " ");
 
-                pipesections.get(threadNumber_running + 1).resume();
+                pipesections.get(getThreadNumber_running() + 1).resume();
                 // pipesections.get(threadNumber_running + 1).notifyAll();
                 // notifyAll();
 
-                threadNumber_pause--;
-                threadNumber_running++;
             } else {
-                AddSection(i + threadNumber_total);
+                AddPipeSection(i + threadNumber_total);
             }
         }
     }
 
-    public synchronized ConcurrentSectionAnalysisResult GetSectionAnalyseResult() {
+    public synchronized MultiPipeSectionAnalysisResult GetSectionAnalyseResult() {
         //calculate everything from analysers
         //reset all analysers
-        ConcurrentSectionAnalysisResult result = new ConcurrentSectionAnalysisResult();
+        MultiPipeSectionAnalysisResult result = new MultiPipeSectionAnalysisResult();
         long maxLatency = Long.MIN_VALUE;
         long minLatency = Long.MAX_VALUE;
         double meanLatency = 0;
         double throughput = 0;
         int workdone = 0;
-
+        long SectionRunningTime = 0;
         for (int i = 1; i <= threadNumber_total; i = i + 1) {
             SectionAnalysisResult temp = analysers.get(i).analyseMs();
+            //System.out.println(temp);
+            if (temp.getBlockRunningTime() > SectionRunningTime) {
+                SectionRunningTime = temp.getBlockRunningTime();
+            }
             if (temp.getMaximumLatency() > maxLatency) {
                 maxLatency = temp.getMaximumLatency();
             }
@@ -186,22 +223,44 @@ public class ConcurrentPipes {
 
             workdone += temp.getWorkdoneAmount();
 
-            PipeSection pi = pipesections.get(i);
+            SinglePipeSection pi = pipesections.get(i);
             if (pi.isRunning()) {
                 //running++;
-                meanLatency = meanLatency + (temp.getAverageLatency() - meanLatency) / i;
+                meanLatency = meanLatency + (temp.getAverageLatency() - meanLatency) / (double) i;
                 throughput += temp.getBlockThroughput();
             }
 
         }
 
-        result.setRunningThreads(threadNumber_running);
-        result.setPausedThreads(threadNumber_pause);
+        result.setRunningThreads(getThreadNumber_running());
+        result.setPausedThreads(getThreadNumber_pausing());
         result.setAverageLatency(meanLatency);
         result.setWorkdoneAmount(workdone);
         result.setSectionThroughput(throughput);
+        result.setSectionRunningTime(SectionRunningTime);
 
         return result;
+    }
+
+    /**
+     * Pause all working pipe sections
+     */
+    @Override
+    public synchronized void pause() {
+        this.DecreasePipesBy(this.threadNumber_total - this.getThreadNumber_pausing());
+    }
+
+    /**
+     * Resume all pausing pipe sections
+     */
+    @Override
+    public synchronized void resume() {
+        this.IncreasePipesBy(this.getThreadNumber_pausing());
+    }
+
+    @Override
+    public void getNotifiedByOther() {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 
 }

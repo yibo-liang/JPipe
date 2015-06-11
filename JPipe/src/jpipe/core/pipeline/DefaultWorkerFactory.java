@@ -3,14 +3,14 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package jpipe.core;
+package jpipe.core.pipeline;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import jpipe.abstractclass.WorkerFactory;
-import jpipe.interfaceclass.IWorker;
+import jpipe.abstractclass.worker.WorkerFactory;
+import jpipe.interfaceclass.IWorkerLazy;
 
 /**
  * This is a default worker factory that will create new worker instance for a 
@@ -20,7 +20,7 @@ import jpipe.interfaceclass.IWorker;
  * @author yl9
  * @param <E>
  */
-public class DefaultWorkerFactory<E extends IWorker> extends WorkerFactory {
+public class DefaultWorkerFactory<E extends IWorkerLazy> extends WorkerFactory {
 
     private final Class workerclass;
     private Class[] paramClasses;
