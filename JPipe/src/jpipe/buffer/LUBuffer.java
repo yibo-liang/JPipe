@@ -23,7 +23,10 @@
  */
 package jpipe.buffer;
 
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.Map;
 import java.util.Queue;
 import jpipe.abstractclass.buffer.Buffer;
 
@@ -42,6 +45,9 @@ public class LUBuffer<E> extends Buffer {
     private final Queue<E> queue;
     private int maxsize = 0;
     private int count = 0;
+
+    private HashMap<Class, Integer> pollerRecord = new HashMap<>();
+    private HashMap<Class, Integer> pusherRecord = new HashMap<>();
 
     public LUBuffer() {
         this.maxsize = 0;
@@ -79,6 +85,7 @@ public class LUBuffer<E> extends Buffer {
             queue.add((E) obj);
 
         }
+        recordPushing(pusher);
         count++;
         itemCount++;
         try {
@@ -89,9 +96,64 @@ public class LUBuffer<E> extends Buffer {
         return true;
     }
 
+    public String getPollingRecordToString() {
+        String temp2 = "{";
+        for (Iterator<Map.Entry<Class, Integer>> it = pollerRecord.entrySet().iterator(); it.hasNext();) {
+            Map.Entry<Class, Integer> pair = it.next();
+            temp2 += " \"" + pair.getKey().getSimpleName() + "\" : " + pair.getValue() + "";
+            //  System.out.println(pair.getKey() + "," + pair.getValue());
+            if (it.hasNext()) {
+                temp2 += ",";
+            }
+        }
+        temp2 += " }";
+        return temp2;
+    }
+
+    public String getPushingRecordToString() {
+        String temp2 = "{";
+        for (Iterator<Map.Entry<Class, Integer>> it = pusherRecord.entrySet().iterator(); it.hasNext();) {
+            Map.Entry<Class, Integer> pair = it.next();
+            temp2 += " \"" + pair.getKey().getSimpleName() + "\" : " + pair.getValue() + "";
+            //  System.out.println(pair.getKey() + "," + pair.getValue());
+            if (it.hasNext()) {
+                temp2 += ",";
+            }
+        }
+        temp2 += " }";
+        return temp2;
+    }
+
+    public HashMap getPollingRecord() {
+        return this.pollerRecord;
+    }
+
+    private synchronized void recordPolling(Object poller) {
+        Integer p = this.pollerRecord.get(poller.getClass());
+        if (p == null) {
+            this.pollerRecord.put(poller.getClass(), 1);
+        } else {
+            this.pollerRecord.put(poller.getClass(), p + 1);
+        }
+    }
+
+    public HashMap getPushingRecord() {
+        return this.pusherRecord;
+    }
+
+    private synchronized void recordPushing(Object pusher) {
+        Integer p = this.pusherRecord.get(pusher.getClass());
+        if (p == null) {
+            this.pusherRecord.put(pusher.getClass(), 1);
+        } else {
+            this.pusherRecord.put(pusher.getClass(), p + 1);
+        }
+    }
+
     @Override
     public synchronized E poll(Object poller) {
         register(poller, Buffer.CONSUMER);
+
         if (count > 0) {
             count--;
             try {
@@ -99,6 +161,7 @@ public class LUBuffer<E> extends Buffer {
             } catch (Exception ex) {
 
             }
+            recordPolling(poller);
             return queue.poll();
         } else {
             return null;
@@ -123,7 +186,7 @@ public class LUBuffer<E> extends Buffer {
     }
 
     @Override
-    public synchronized int getSize() {
+    public int getSize() {
         return this.maxsize;
     }
 

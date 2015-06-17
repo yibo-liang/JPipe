@@ -25,7 +25,6 @@ package jpipe.core.pipeline;
 
 import jpipe.abstractclass.PipeSection;
 import jpipe.abstractclass.worker.Worker;
-import jpipe.interfaceclass.IPipeSection;
 
 /**
  *

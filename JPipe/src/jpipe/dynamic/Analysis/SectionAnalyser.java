@@ -23,6 +23,8 @@
  */
 package jpipe.dynamic.Analysis;
 
+import jpipe.abstractclass.PipeSection;
+
 /**
  *
  * @author Yibo
@@ -30,20 +32,29 @@ package jpipe.dynamic.Analysis;
 public class SectionAnalyser {
 
     private int workdoneAmount;
-    private int workfaileAmount;
+    private int workfailAmount;
 
-    private long LastLatency;
     private long maxLatency;
     private long minLatency;
     private long totalWorkingLatency;
     private double meanLatency;
     private long blocktime;
     private long blockStartTime;
+    private int ConsecutiveSuccCount = 0;
+    private int maxSuccCount = 0;
+    private int totalSuccCount = 0;
+    private int succCountReset = 1;
 
-    public SectionAnalyser(){
-        this.HardReset();
+    private PipeSection pipeSection; 
+
+    public void setPipeSection(PipeSection pipeSection) {
+        this.pipeSection = pipeSection;
     }
     
+    public SectionAnalyser() {
+        
+    }
+
     public void BlockStart() {
         blockStartTime = System.nanoTime();
     }
@@ -54,13 +65,14 @@ public class SectionAnalyser {
 
     public void BlockFinish() {
         blocktime = System.nanoTime() - blockStartTime;
-        HardReset();
+        
     }
 
     public void workdone(long latency) {
         //System.out.println("Workdone!" + latency);
         totalWorkingLatency += latency;
         workdoneAmount++;
+        ConsecutiveSuccCount++;
         if (latency > maxLatency) {
             //System.out.println("new max!");
             maxLatency = latency;
@@ -73,22 +85,15 @@ public class SectionAnalyser {
     }
 
     public void workfail() {
-        workfaileAmount++;
-
-    }
-
-    public void SoftReset() {
-        LastLatency = 0;
-        maxLatency = Long.MIN_VALUE;
-        minLatency = Long.MAX_VALUE;
-        meanLatency = 0;
-
-    }
-
-    public final void HardReset() {
-        this.SoftReset();
-        workdoneAmount = 0;
-        blockStartTime = System.nanoTime();
+        workfailAmount++;
+        if (ConsecutiveSuccCount > 0) {
+            if (ConsecutiveSuccCount > maxSuccCount) {
+                maxSuccCount = ConsecutiveSuccCount;
+            }
+            totalSuccCount += ConsecutiveSuccCount;
+            succCountReset++;
+            ConsecutiveSuccCount = 0;
+        }
     }
 
     public SectionAnalysisResult analyseNano() {
@@ -100,6 +105,11 @@ public class SectionAnalyser {
         result.setBlockThroughput(workdoneAmount / (double) timespent);
         result.setWorkdoneAmount(workdoneAmount);
         result.setBlockRunningTime(getBlockRunningTime());
+        result.setMaxConsecutiveSuccCount(maxSuccCount);
+        result.setLifetimeAverageConsecutiveSuccCount((double) totalSuccCount / (double) succCountReset);
+        result.setPipeSectionState(this.pipeSection.getState());
+        result.setWorkerState(this.pipeSection.getWorker().getState());
+        
         //SoftReset();
         return result;
 
@@ -113,9 +123,15 @@ public class SectionAnalyser {
         result.setMinimumLatency((long) (minLatency / (Math.pow(10, 6))));
         result.setBlockThroughput(workdoneAmount / (timespent / (Math.pow(10, 9))));
         result.setWorkdoneAmount(workdoneAmount);
-        result.setWorkfailAmount(workfaileAmount);
-
+        result.setWorkfailAmount(workfailAmount);
         result.setBlockRunningTime((long) ((getBlockRunningTime()) / (Math.pow(10, 6))));
+
+        result.setMaxConsecutiveSuccCount(maxSuccCount);
+        result.setLifetimeAverageConsecutiveSuccCount((double) totalSuccCount / (double) succCountReset);
+        result.setCurrentConsecutiveSeccCount((double) ConsecutiveSuccCount);
+        
+        result.setPipeSectionState(this.pipeSection.getState());
+        result.setWorkerState(this.pipeSection.getWorker().getState());
         //SoftReset();
         return result;
 

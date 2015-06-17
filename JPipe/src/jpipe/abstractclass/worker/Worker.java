@@ -25,8 +25,10 @@ package jpipe.abstractclass.worker;
 
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import jpipe.abstractclass.Immutable;
 import jpipe.abstractclass.buffer.Buffer;
 import jpipe.buffer.util.BufferStore;
+import jpip.singletons.WorkerStates;
 import jpipe.interfaceclass.IPipeSection;
 import jpipe.interfaceclass.IWorkerLazy;
 
@@ -35,17 +37,26 @@ import jpipe.interfaceclass.IWorkerLazy;
  *
  * @author yl9
  */
-public abstract class Worker implements IWorkerLazy {
+public abstract class Worker extends Immutable implements IWorkerLazy {
 
     public static int FAIL = 0;
     public static int SUCCESS = 1;
     public static int NO_INPUT = 10;
 
-    private final int hashCache;
-
     private BufferStore bufferStore = null;
 
     private IPipeSection wrapPipeSection;
+
+    private int State = WorkerStates.INITIAL;
+
+    public int getState() {
+        return State;
+    }
+
+    public void setState(int State) {
+        this.State = State;
+    }
+
     final Object noticeLock = new Object();
 
     public IPipeSection getWrapPipeSection() {
@@ -59,10 +70,7 @@ public abstract class Worker implements IWorkerLazy {
         this.wrapPipeSection = wrapPipeSection;
     }
 
-    private int laziness = 0;
-
     public void getNotified() {
-        this.laziness = laziness;
         synchronized (this) {
             notifyAll();
         }
@@ -83,34 +91,38 @@ public abstract class Worker implements IWorkerLazy {
         while (!bf.push(this, item)) {
             synchronized (this) {
                 try {
+                    this.State = WorkerStates.BLOCKED_PUSHING;
                     wait();
+                    this.State = WorkerStates.WORKING;
                 } catch (InterruptedException ex) {
                     Logger.getLogger(Worker.class.getName()).log(Level.SEVERE, null, ex);
                 }
-               // System.out.println("blocked push item=" + item);
+                // System.out.println("blocked push item=" + item);
             }
         };
     }
 
+    @SuppressWarnings("empty-statement")
+    public Object blockedpoll(Buffer bf) {
+        Object result = bf.poll(this);
+        while (result == null) {
+            synchronized (this) {
+                try {
+                    this.State = WorkerStates.BLOCKED_POLLING;
+                    wait();
+                    this.State = WorkerStates.WORKING;
+                    result = bf.poll(this);
+                } catch (InterruptedException ex) {
+                    Logger.getLogger(Worker.class.getName()).log(Level.SEVERE, null, ex);
+                }
+                // System.out.println("blocked push item=" + item);
+            }
+        };
+        return result;
+    }
+
     public Worker() {
         super();
-        this.hashCache = (new Object()).hashCode();
     }
 
-    @Override
-    public int hashCode() {
-        return hashCache;
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (obj == null) {
-            return false;
-        }
-        if (getClass() != obj.getClass()) {
-            return false;
-        }
-        final Worker other = (Worker) obj;
-        return this.hashCode() == other.hashCode();
-    }
 }

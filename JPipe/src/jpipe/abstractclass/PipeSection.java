@@ -27,7 +27,9 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import jpipe.abstractclass.worker.Worker;
 import jpipe.core.pipeline.SinglePipeSection;
+import jpip.singletons.PipeSectionStates;
 import jpipe.dynamic.Analysis.SectionAnalyser;
+import jpip.singletons.WorkerStates;
 import jpipe.interfaceclass.IPipeSectionLazy;
 
 /**
@@ -44,9 +46,27 @@ public abstract class PipeSection extends Immutable implements IPipeSectionLazy 
     private boolean Pausing = false;
 
     private int laziness = 0;
-
     private boolean Lazy = false;
     private boolean LazyResting = false;
+
+    //state for analysis purpose
+    private int state = PipeSectionStates.INITIAL;
+
+    public long getWorktimer() {
+        return worktimer;
+    }
+
+    public void setWorktimer(long worktimer) {
+        this.worktimer = worktimer;
+    }
+
+    public int getState() {
+        return state;
+    }
+
+    public void setState(int state) {
+        this.state = state;
+    }
 
     private Worker worker;
 
@@ -61,6 +81,7 @@ public abstract class PipeSection extends Immutable implements IPipeSectionLazy 
 
     public void setAnalyser(SectionAnalyser analyser) {
         this.analyser = analyser;
+        this.analyser.setPipeSection(this);
     }
 
     /**
@@ -126,21 +147,12 @@ public abstract class PipeSection extends Immutable implements IPipeSectionLazy 
         return laziness;
     }
 
-    public void rest() {
-        setLaziness(9000);
-    }
-
     @Override
     public void pause() {
         //System.out.println("Being paused by someone");
 
         this.Pausing = true;
-        try {
-            throw new Exception("GGG");
-        } catch (Exception ex) {
-            ex.printStackTrace();
 
-        }
     }
 
     @Override
@@ -157,17 +169,19 @@ public abstract class PipeSection extends Immutable implements IPipeSectionLazy 
         if (analyser != null) {
             worktimer = System.nanoTime();
         }
+        this.state = PipeSectionStates.WORKING;
+        this.getWorker().setState(WorkerStates.WORKING);
     }
 
-    public void WorkFinish(int workerState) {
-        if (workerState == Worker.SUCCESS) {
+    public void WorkFinish(int workResult) {
+        if (workResult == Worker.SUCCESS) {
             if (analyser != null) {
                 long latency = System.nanoTime() - worktimer;
                 analyser.workdone(latency);
 
             }
             return;
-        } else if (workerState == Worker.FAIL) {
+        } else if (workResult == Worker.FAIL) {
             if (analyser != null) {
                 analyser.workfail();
 
@@ -176,13 +190,12 @@ public abstract class PipeSection extends Immutable implements IPipeSectionLazy 
         }
 
         synchronized (this) {
-            if (workerState == Worker.NO_INPUT) {
-                // System.out.println("No input, go Lazy if lazy");
+            if (workResult == Worker.NO_INPUT) {
                 if (Lazy) {
-                    rest();
+
                     try {
                         this.LazyResting = true;
-                        // System.out.println("Resting !!!!!!!!!!!!!!!!!!!!!!!!!"+laziness);
+                        this.state = PipeSectionStates.RESTING;
                         wait();
                         this.LazyResting = false;
                     } catch (InterruptedException ex) {
@@ -192,14 +205,11 @@ public abstract class PipeSection extends Immutable implements IPipeSectionLazy 
 
                 }
             }
-        // System.out.println("berfore lazy");
-
-            //System.out.println("berfore  22  lazy p="+Pausing+", l="+laziness);
             while (Pausing) {
 
                 try {
                     if (Pausing) {
-                        //System.out.println("Pausing !!!!!!!!!!!!!!!!!!!!!!!!!"+laziness);
+                        this.state = PipeSectionStates.PAUSING;
                         wait(this.laziness);
                     }
 

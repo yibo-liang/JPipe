@@ -10,7 +10,6 @@ import java.util.Iterator;
 import java.util.Map.Entry;
 import jpipe.abstractclass.buffer.Buffer;
 import jpipe.interfaceclass.IBuffer;
-import jpipe.interfaceclass.IWorker;
 
 /**
  *
@@ -41,30 +40,22 @@ public class BufferStore {
         buffers.clear();
     }
 
-    public void printBufferState(){
-        
+    public String BufferStates() {
+        String result = "{[";
         for (Iterator<Entry<String, IBuffer>> it = buffers.entrySet().iterator(); it.hasNext();) {
-            Entry<String, IBuffer> pair = it.next();
-            Buffer b = ((Buffer) pair.getValue());
-            System.out.println(pair.getKey()+":"+b.getCount()+"/"+b.getSize());
-            
-        }
-    }
-    /*
-    public void notifyPipeSections(IWorker notifier) {
-
-        for (Iterator<Entry<String, IBuffer>> it = buffers.entrySet().iterator(); it.hasNext();) {
-            Entry<String, IBuffer> pair = it.next();
-            Buffer b = ((Buffer) pair.getValue());
-            if (b.isNotifierConsumer((IWorker) notifier)) {
-                b.notifyProduer();
+            try {
+                Entry<String, IBuffer> pair = it.next();
+                Buffer b = ((Buffer) pair.getValue());
+                result += "{ \"name\" : \"" + pair.getKey() + "\" ,"
+                        + " \"info\" : { \"itemNumber\" :" + b.getCount() + ", \"maximum\" : " + b.getSize() + " }";
+                if (it.hasNext()) {
+                    result += ",\n";
+                }
+            } catch (Exception ex) {
+                ex.printStackTrace();
             }
-            
-            if (b.isNotifierProducer((IWorker) notifier)) {
-                b.notifyConsumer();
-            }
-            it.remove();
         }
+        result += "]}";
+        return result;
     }
-    */
 }

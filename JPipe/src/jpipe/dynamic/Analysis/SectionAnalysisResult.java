@@ -35,9 +35,51 @@ public class SectionAnalysisResult {
     private long MinimumLatency;
     private int workdoneAmount;
     private int workfailAmount;
-
     private long blockRunningTime;
+    
+    private double LifetimeAverageConsecutiveSuccCount;
+    private double currentConsecutiveSeccCount;
+    
+    private long maxSuccCount;
 
+    private int pipeSectionState;
+    private int workerState;
+
+    public int getPipeSectionState() {
+        return pipeSectionState;
+    }
+
+    public void setPipeSectionState(int pipeSectionState) {
+        this.pipeSectionState = pipeSectionState;
+    }
+
+    public int getWorkerState() {
+        return workerState;
+    }
+
+    public void setWorkerState(int workerState) {
+        this.workerState = workerState;
+    }
+    
+    
+    public double getLifetimeAverageConsecutiveSuccCount() {
+        return LifetimeAverageConsecutiveSuccCount;
+    }
+
+    public void setLifetimeAverageConsecutiveSuccCount(double averageSuccCount) {
+        this.LifetimeAverageConsecutiveSuccCount = averageSuccCount;
+    }
+
+    public long getMaxConsecutiveSuccCount() {
+        return maxSuccCount;
+    }
+
+    public void setMaxConsecutiveSuccCount(long maxSuccCount) {
+        this.maxSuccCount = maxSuccCount;
+    }
+    
+    
+    
     public int getWorkfailAmount() {
         return workfailAmount;
     }
@@ -94,6 +136,16 @@ public class SectionAnalysisResult {
         this.MinimumLatency = MinimumLatency;
     }
 
+    public double getCurrentConsecutiveSeccCount() {
+        return currentConsecutiveSeccCount;
+    }
+
+    public void setCurrentConsecutiveSeccCount(double currentConsecutiveSeccCount) {
+        this.currentConsecutiveSeccCount = currentConsecutiveSeccCount;
+    }
+
+    
+    
     @Override
     public String toString() {
         return "========================================\n"
@@ -103,7 +155,6 @@ public class SectionAnalysisResult {
                 + "MinimumLatency:" + this.MinimumLatency + "\n"
                 + "workdoneAmount:" + this.workdoneAmount + "\n"
                 + "workfailAmount:" + this.workfailAmount + "\n"
-                
                 + "blockRunningTime:" + this.blockRunningTime + "\n"
                 + "======================================\n";
     }

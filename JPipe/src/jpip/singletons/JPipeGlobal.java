@@ -21,8 +21,8 @@ public class JPipeGlobal {
         return instance;
     }
 
-    public static final int SUCCESSFUL = 1;
-    public static final int FAIL = 0;
+    //public static final int SUCCESSFUL = 1;
+   // public static final int FAIL = 0;
     
     
 }

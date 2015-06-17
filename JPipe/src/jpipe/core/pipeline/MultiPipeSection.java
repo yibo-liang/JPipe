@@ -27,19 +27,15 @@ import java.util.HashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import jpipe.abstractclass.PipeSection;
 import jpipe.dynamic.Analysis.SectionAnalyser;
 import jpipe.dynamic.Analysis.SectionAnalysisResult;
 import jpipe.dynamic.Analysis.MultiPipeSectionAnalysisResult;
-import jpipe.abstractclass.buffer.Buffer;
 import jpipe.abstractclass.worker.Worker;
 import jpipe.abstractclass.worker.WorkerFactory;
 import jpipe.buffer.util.BufferStore;
-import jpipe.interfaceclass.IBuffer;
 import jpipe.interfaceclass.IPipeSectionLazy;
-import jpipe.interfaceclass.IWorker;
+
 
 /**
  *
@@ -207,7 +203,13 @@ public class MultiPipeSection<E extends PipeSection> implements IPipeSectionLazy
         double meanLatency = 0;
         double throughput = 0;
         int workdone = 0;
+        int workfail = 0;
         long SectionRunningTime = 0;
+
+        long maxContiSucc = 0;
+        double LifetimeAvrgConsecutiveSucc = 0;
+        double currentAvrgConsecutiveSucc = 0;
+
         for (int i = 1; i <= threadNumber_total; i = i + 1) {
             SectionAnalysisResult temp = analysers.get(i).analyseMs();
             //System.out.println(temp);
@@ -221,23 +223,41 @@ public class MultiPipeSection<E extends PipeSection> implements IPipeSectionLazy
                 minLatency = temp.getMinimumLatency();
             }
 
-            workdone += temp.getWorkdoneAmount();
+            if (temp.getMaxConsecutiveSuccCount() > maxContiSucc) {
+                maxContiSucc = temp.getMaxConsecutiveSuccCount();
+            }
 
+            workdone += temp.getWorkdoneAmount();
+            workfail += temp.getWorkfailAmount();
             SinglePipeSection pi = pipesections.get(i);
             if (pi.isRunning()) {
                 //running++;
-                meanLatency = meanLatency + (temp.getAverageLatency() - meanLatency) / (double) i;
+                LifetimeAvrgConsecutiveSucc += ((double) temp.getLifetimeAverageConsecutiveSuccCount() - (double) LifetimeAvrgConsecutiveSucc) / (double) i;
+                meanLatency += ((double) temp.getAverageLatency() - (double) meanLatency) / (double) i;
+                currentAvrgConsecutiveSucc += ((double) temp.getCurrentConsecutiveSeccCount() - currentAvrgConsecutiveSucc) / (double) i;
                 throughput += temp.getBlockThroughput();
             }
+            
+            result.addPipeState(temp.getPipeSectionState());
+            result.addWorkerState(temp.getWorkerState());
 
         }
-
-        result.setRunningThreads(getThreadNumber_running());
-        result.setPausedThreads(getThreadNumber_pausing());
+       
+        //avrgContiSucc = avrgContiSucc / threadNumber_total;
         result.setAverageLatency(meanLatency);
+
         result.setWorkdoneAmount(workdone);
+        result.setWorkfailAmount(workfail);
+
         result.setSectionThroughput(throughput);
         result.setSectionRunningTime(SectionRunningTime);
+
+        result.setMaximumLatency(maxLatency);
+        result.setMinimumLatency(minLatency);
+        
+        result.setCurrentConsecutiveSeccCount(currentAvrgConsecutiveSucc);
+        result.setLifetimeAverageContinuousSuccess(LifetimeAvrgConsecutiveSucc);
+        result.setMaxCountinuousSuccess(maxContiSucc);
 
         return result;
     }
