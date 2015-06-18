@@ -178,11 +178,8 @@ public class LUBuffer<E> extends Buffer {
     public synchronized void clear() {
         count = 0;
         queue.clear();
-        try {
-            this.notifyProduer();
-        } catch (Exception ex) {
+        this.notifyProduer();
 
-        }
     }
 
     @Override

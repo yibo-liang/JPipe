@@ -50,8 +50,7 @@ public abstract class Buffer<E> extends Immutable implements IBuffer {
     private final HashMap<IWorker, Integer> consumers = new HashMap();
 
     private int relationCount = 0;
-    
- 
+
     public Buffer() {
         super();
     }
@@ -82,29 +81,40 @@ public abstract class Buffer<E> extends Immutable implements IBuffer {
     }
 //Notify all consumers
 
-    public void notifyConsumer() {
+    public  void notifyConsumer() {
 
         Iterator it = consumers.entrySet().iterator();
         while (it.hasNext()) {
+
             Entry<Worker, Integer> pair = (Entry) it.next();
-            ((IPipeSectionLazy) pair.getKey().getWrapPipeSection()).getNotifiedByOther();
-            //System.out.println("notifying! consumers");
+            try {
+                ((IPipeSectionLazy) pair.getKey().getWrapPipeSection()).getNotifiedByOther();
+                //System.out.println("notifying! consumers");
+            } catch (Exception e) {
+
+            }
             it.remove();
+
         }
 
     }
 
-    public boolean isNotifierProducer(IWorker notifier) {
+    public  boolean isNotifierProducer(IWorker notifier) {
         return producers.get(notifier) != null;
     }
 //notify all producers
-    public void notifyProduer() {
+
+    public  void notifyProduer() {
 
         Iterator it = producers.entrySet().iterator();
         while (it.hasNext()) {
             Entry<Worker, Integer> pair = (Entry) it.next();
-            ((IPipeSectionLazy) pair.getKey().getWrapPipeSection()).getNotifiedByOther();
-            //System.out.println("notifying! producer");
+            try {
+                ((IPipeSectionLazy) pair.getKey().getWrapPipeSection()).getNotifiedByOther();
+                //System.out.println("notifying! producer");
+            } catch (Exception e) {
+
+            }
             it.remove();
         }
 
