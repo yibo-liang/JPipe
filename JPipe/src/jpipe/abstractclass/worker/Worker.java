@@ -29,6 +29,7 @@ import jpipe.abstractclass.Immutable;
 import jpipe.abstractclass.buffer.Buffer;
 import jpipe.buffer.util.BufferStore;
 import jpip.singletons.WorkerStates;
+import jpipe.buffer.SocketBuffer;
 import jpipe.interfaceclass.IPipeSection;
 import jpipe.interfaceclass.IWorkerLazy;
 
@@ -88,11 +89,15 @@ public abstract class Worker extends Immutable implements IWorkerLazy {
 
     @SuppressWarnings("empty-statement")
     public void blockedpush(Buffer bf, Object item) {
+        int interval = 0;
+        if (bf instanceof SocketBuffer) {
+            interval = 3000;
+        }
         while (!bf.push(this, item)) {
             synchronized (this) {
                 try {
                     this.State = WorkerStates.BLOCKED_PUSHING;
-                    wait();
+                    wait(interval);
                     this.State = WorkerStates.WORKING;
                 } catch (InterruptedException ex) {
                     Logger.getLogger(Worker.class.getName()).log(Level.SEVERE, null, ex);
@@ -104,18 +109,24 @@ public abstract class Worker extends Immutable implements IWorkerLazy {
 
     @SuppressWarnings("empty-statement")
     public Object blockedpoll(Buffer bf) {
-        Object result = bf.poll(this);
+        int interval = 0;
+        if (bf instanceof SocketBuffer) {
+            //System.out.println("Socket buffer detected");
+            interval = 3000;
+        }
+        Object result =bf.poll(this);;
         while (result == null) {
             synchronized (this) {
                 try {
                     this.State = WorkerStates.BLOCKED_POLLING;
-                    wait();
+                    wait(interval);
                     this.State = WorkerStates.WORKING;
+                    
                     result = bf.poll(this);
                 } catch (InterruptedException ex) {
                     Logger.getLogger(Worker.class.getName()).log(Level.SEVERE, null, ex);
                 }
-                // System.out.println("blocked push item=" + item);
+                
             }
         };
         return result;

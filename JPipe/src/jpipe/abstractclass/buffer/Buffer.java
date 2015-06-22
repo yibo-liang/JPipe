@@ -81,41 +81,46 @@ public abstract class Buffer<E> extends Immutable implements IBuffer {
     }
 //Notify all consumers
 
-    public  void notifyConsumer() {
+    public void notifyConsumer() {
 
         Iterator it = consumers.entrySet().iterator();
         while (it.hasNext()) {
 
             Entry<Worker, Integer> pair = (Entry) it.next();
-            try {
-                ((IPipeSectionLazy) pair.getKey().getWrapPipeSection()).getNotifiedByOther();
-                //System.out.println("notifying! consumers");
-            } catch (Exception e) {
-
+            if (pair.getKey() != null) {
+                try {
+                    ((IPipeSectionLazy) pair.getKey().getWrapPipeSection()).getNotifiedByOther();
+                    it.remove();
+                    //System.out.println("notifying! consumers");
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    break;
+                }
             }
-            it.remove();
-
         }
 
     }
 
-    public  boolean isNotifierProducer(IWorker notifier) {
+    public boolean isNotifierProducer(IWorker notifier) {
         return producers.get(notifier) != null;
     }
 //notify all producers
 
-    public  void notifyProduer() {
+    public void notifyProduer() {
 
         Iterator it = producers.entrySet().iterator();
         while (it.hasNext()) {
             Entry<Worker, Integer> pair = (Entry) it.next();
             try {
-                ((IPipeSectionLazy) pair.getKey().getWrapPipeSection()).getNotifiedByOther();
+                if (pair.getKey().getWrapPipeSection() != null) {
+                    ((IPipeSectionLazy) pair.getKey().getWrapPipeSection()).getNotifiedByOther();
+                }
+                it.remove();
                 //System.out.println("notifying! producer");
             } catch (Exception e) {
-
+                e.printStackTrace();
+                break;
             }
-            it.remove();
         }
 
     }

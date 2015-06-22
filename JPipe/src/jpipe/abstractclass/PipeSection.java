@@ -171,6 +171,7 @@ public abstract class PipeSection extends Immutable implements IPipeSectionLazy 
         }
         this.state = PipeSectionStates.WORKING;
         this.getWorker().setState(WorkerStates.WORKING);
+       
     }
 
     public void WorkFinish(int workResult) {

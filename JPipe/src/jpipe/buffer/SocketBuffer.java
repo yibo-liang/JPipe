@@ -25,30 +25,20 @@ package jpipe.buffer;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
-import java.io.Closeable;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
 import java.io.Serializable;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.net.SocketException;
 import java.util.LinkedList;
 import java.util.Queue;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.LinkedBlockingDeque;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.net.ssl.SSLServerSocket;
-import javax.net.ssl.SSLSocket;
 import jpipe.abstractclass.buffer.Buffer;
 import jpipe.buffer.util.SocketMessage;
-import jpipe.interfaceclass.IWorker;
 
 /**
  *
@@ -75,7 +65,7 @@ public class SocketBuffer<E extends Serializable> extends Buffer {
 
             @Override
             public void run() {
-                System.out.println("Run Client");
+                // System.out.println("Run Client");
                 while (!shutdown) {
                     try {
                         ObjectOutputStream outs = new ObjectOutputStream(socket.getOutputStream());
@@ -85,7 +75,7 @@ public class SocketBuffer<E extends Serializable> extends Buffer {
                         String message = obj.getPrimaryMessage();
                         SocketMessage resultMessage;
                         E resultObj;
-                        System.out.println("Receive message=" + message + ", obj=" + obj.getObj());
+                        //System.out.println("Receive message=" + message + ", obj=" + obj.getObj());
                         switch (message) {
                             case "PUSH":
                                 Boolean pushResult = buffer.push(null, (E) obj.getObj());
@@ -160,6 +150,7 @@ public class SocketBuffer<E extends Serializable> extends Buffer {
 
                         Socket connection = serverSocket.accept();
                         eth = new ServerEchoThread(connection, buffer);
+                        System.out.println("Connection made with" + connection.getInetAddress().getHostAddress());
                         eth.start();
                     } catch (IOException ex) {
                         ex.printStackTrace();
@@ -180,31 +171,40 @@ public class SocketBuffer<E extends Serializable> extends Buffer {
         private void runClient() {
 
             Socket socket = null;
+
             while (!shutdown) {
 
                 SocketMessage<E> cmdobj = MessageQueue.poll();
 
                 if (cmdobj != null) {
+                    System.out.println("New Message = " + cmdobj.getPrimaryMessage());
                     boolean reset = false;
                     while (true) {
+
                         try {
                             if (reset) {
-                                socket.close();
+                                try {
+                                    socket.close();
+                                } catch (Exception e) {
+
+                                }
                                 socket = null;
+
                             }
                             if (socket == null) {
 
                                 socket = new Socket(server, port);
                             }
+
                             ObjectOutputStream ous = new ObjectOutputStream(socket.getOutputStream());
                             ObjectInputStream ins = new ObjectInputStream(socket.getInputStream());
                             //send object with message
-                            System.out.println("Client sending message" + cmdobj.getPrimaryMessage());
+                            //System.out.println("Client sending message" + cmdobj.getPrimaryMessage());
                             ous.writeObject(cmdobj);
 
                             //wait for reply
                             SocketMessage result = (SocketMessage) ins.readObject();
-                            System.out.println("Client receive message " + result.getPrimaryMessage() + " = " + result.getObj());
+                            // System.out.println("Client receive message " + result.getPrimaryMessage() + " = " + result.getObj());
                             //deal with reply
                             if (result.getPrimaryMessage().equals("POLLRESULT")) {
                                 if (result.getObj() != null) {
@@ -231,21 +231,25 @@ public class SocketBuffer<E extends Serializable> extends Buffer {
                                     syncCount(Integer.parseInt(result.getsecondaryMessage()));
                                     pushMessageinQUeue--;
                                     break;
+                                } else {
+                                    continue;
                                 }
                             } else {
                                 break;
                             }
                         } catch (IOException ex) {
                             try {
-                                System.out.println("Exception when Socket Client tried to connect to Socket Server!");
+                                //System.out.println("Exception when Socket Client tried to connect to Socket Server!");
                                 reset = true;
-
-                                Logger.getLogger(SocketBuffer.class.getName()).log(Level.SEVERE, null, ex);
-                                wait(500);
+                                serverCount=0;
+                                clientCount=0;
+                                //Logger.getLogger(SocketBuffer.class.getName()).log(Level.SEVERE, null, ex);
+                                Thread.sleep(500);
+                                continue;
                             } catch (InterruptedException ex1) {
                                 Logger.getLogger(SocketBuffer.class.getName()).log(Level.SEVERE, null, ex);
                             }
-
+                            
                         } catch (ClassNotFoundException ex) {
                             Logger.getLogger(SocketBuffer.class.getName()).log(Level.SEVERE, null, ex);
                         }
@@ -259,6 +263,7 @@ public class SocketBuffer<E extends Serializable> extends Buffer {
                     }
 
                 }
+
             }
         }
 
@@ -277,13 +282,13 @@ public class SocketBuffer<E extends Serializable> extends Buffer {
     }
 
     private SocketConnection ConnectionThread;
-    private int socketType;
+    private final int socketType;
 
     private Thread connector;
     public static int DEFAULT_PORT = 60001;
 
     private String server;
-    private int port;
+    private final int port;
 
     private int pushMessageinQUeue = 0;
     private int serverCount = 0;
@@ -296,7 +301,7 @@ public class SocketBuffer<E extends Serializable> extends Buffer {
     }
 
     //BufferQueue for client buffer
-    private final Queue<SocketMessage<E>> MessageQueue = new LinkedList();
+    private final Queue<SocketMessage<E>> MessageQueue = new LinkedBlockingDeque<>();
     //Queue for server buffer
     private final Queue<E> StorageQueue = new LinkedList();
 
@@ -359,7 +364,9 @@ public class SocketBuffer<E extends Serializable> extends Buffer {
 
     @Override
     public synchronized boolean push(Object callerKey, Object obj) {
-        register(callerKey, PRODUCER);
+        if (callerKey != null) {
+            register(callerKey, PRODUCER);
+        }
         if (this.serverCount + pushMessageinQUeue < size || size == 0) {
 
             if (socketType == CLIENT) {
@@ -371,7 +378,7 @@ public class SocketBuffer<E extends Serializable> extends Buffer {
                 StorageQueue.add((E) obj);
                 serverCount++;
                 notifyConsumer();
-                System.out.println("Pushed " + obj.toString());
+                //System.out.println("Pushed " + obj.toString());
                 return true;
             }
 
@@ -381,7 +388,9 @@ public class SocketBuffer<E extends Serializable> extends Buffer {
 
     @Override
     public synchronized E poll(Object callerKey) {
-        register(callerKey, CONSUMER);
+        if (callerKey != null) {
+            register(callerKey, CONSUMER);
+        }
         if (socketType == SERVER) {
             if (serverCount > 0) {
                 serverCount--;
@@ -406,7 +415,9 @@ public class SocketBuffer<E extends Serializable> extends Buffer {
 
     @Override
     public synchronized E peek(Object callerKey) {
-        register(callerKey, CONSUMER);
+        if (callerKey != null) {
+            register(callerKey, CONSUMER);
+        }
         System.out.println("peek, count=" + serverCount);
         if (socketType == SERVER) {
             if (this.serverCount > 0) {

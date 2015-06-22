@@ -35,11 +35,14 @@ public class SinglePipeSection extends PipeSection
 
     public SinglePipeSection(Worker worker) {
         this.setWorker(worker);
+        
     }
 
     @Override
     public void run() {
-
+        
+        this.getWorker().setWrapPipeSection(this);
+        
         if (analyser != null) {
             analyser.BlockStart();
         }
@@ -49,7 +52,6 @@ public class SinglePipeSection extends PipeSection
             //set the laziness back, "People don't change!" -- by House
             this.setLaziness(9000);
             WorkStart();
-            
             int result = this.getWorker().work();
             WorkFinish(result);
             
