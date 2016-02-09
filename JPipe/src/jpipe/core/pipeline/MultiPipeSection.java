@@ -154,8 +154,9 @@ public class MultiPipeSection<E extends PipeSection> implements IPipeSectionLazy
         analysers.put(index, a);
 
         Worker newWorker = (Worker) this.workerFactory.create();
+        //newWorker.setPID(index);
         newWorker.setBufferStore(bs);
-        SinglePipeSection pb = new SinglePipeSection(newWorker);
+        SinglePipeSection pb = new SinglePipeSection(newWorker, index);
 
         pb.setAnalyser(a);
         //newWorker.setWrapPipeSection(pb);
@@ -165,6 +166,7 @@ public class MultiPipeSection<E extends PipeSection> implements IPipeSectionLazy
         threadPoolExecutor.execute(pb);
 
         threadNumber_total++;
+        //System.out.println("created thread id="+index);
         //System.out.println("Added into pipsecs total=" + threadNumber_total);
 
     }

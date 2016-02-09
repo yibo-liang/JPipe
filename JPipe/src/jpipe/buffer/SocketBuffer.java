@@ -23,20 +23,10 @@
  */
 package jpipe.buffer;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.io.Serializable;
-import java.net.ServerSocket;
-import java.net.Socket;
 import java.util.LinkedList;
 import java.util.Queue;
 import java.util.concurrent.LinkedBlockingDeque;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
 import jpipe.abstractclass.buffer.Buffer;
 import jpipe.buffer.util.SocketMessage;
 
@@ -50,238 +40,6 @@ public class SocketBuffer<E extends Serializable> extends Buffer {
     public static int SERVER = 1000;
     public static int CLIENT = 2000;
 
-    private class SocketConnection extends Thread {
-
-        public class ServerEchoThread extends Thread {
-
-            protected Socket socket;
-
-            private SocketBuffer buffer;
-
-            public ServerEchoThread(Socket clientSocket, SocketBuffer buffer) {
-                this.socket = clientSocket;
-                this.buffer = buffer;
-            }
-
-            @Override
-            public void run() {
-                // System.out.println("Run Client");
-                while (!shutdown) {
-                    try {
-                        ObjectOutputStream outs = new ObjectOutputStream(socket.getOutputStream());
-                        ObjectInputStream ins = new ObjectInputStream(socket.getInputStream());
-
-                        SocketMessage<Serializable> obj = (SocketMessage) ins.readObject();
-                        String message = obj.getPrimaryMessage();
-                        SocketMessage resultMessage;
-                        E resultObj;
-                        //System.out.println("Receive message=" + message + ", obj=" + obj.getObj());
-                        switch (message) {
-                            case "PUSH":
-                                Boolean pushResult = buffer.push(null, (E) obj.getObj());
-
-                                resultMessage = new SocketMessage<>("PUSHRESULT", String.valueOf(serverCount), pushResult);
-
-                                outs.writeObject(resultMessage);
-                                buffer.notifyConsumer();
-                                break;
-                            case "POLL":
-                                resultObj = (E) buffer.poll(null);
-                                if (resultObj != null) {
-                                    resultMessage = new SocketMessage<>("POLLRESULT", String.valueOf(serverCount), resultObj);
-                                } else {
-                                    resultMessage = new SocketMessage<>("PULLRESULT", String.valueOf(serverCount), null);
-                                }
-                                outs.writeObject(resultMessage);
-                                buffer.notifyProduer();
-                                break;
-                            case "PEEK":
-                                resultObj = (E) buffer.peek(null);
-                                if (resultObj != null) {
-                                    resultMessage = new SocketMessage<>("PEEKRESULT", String.valueOf(serverCount), resultObj);
-                                } else {
-                                    resultMessage = new SocketMessage<>("PEEKRESULT", String.valueOf(serverCount), null);
-                                }
-                                outs.writeObject(resultMessage);
-                                break;
-                            //ignore unrecognized messages
-                            default:
-
-                        }
-
-                    } catch (IOException | ClassNotFoundException e) {
-                        Logger.getLogger(SocketBuffer.class.getName()).log(Level.SEVERE, null, e);
-                        return;
-                    }
-                }
-            }
-        }
-
-        private ServerEchoThread eth;
-        private final int type;
-        private boolean shutdown = false;
-        private final SocketBuffer buffer;
-
-        public boolean isShutdown() {
-            return shutdown;
-        }
-
-        public void setShutdown(boolean shutdown) {
-            this.shutdown = shutdown;
-        }
-
-        public SocketConnection(int type, SocketBuffer buffer) {
-
-            this.type = type;
-            this.buffer = buffer;
-        }
-
-        private void runServer() {
-            System.out.println("Run server");
-            try {
-                ServerSocket serverSocket;
-
-                BufferedReader input = null;
-                BufferedWriter output = null;
-                boolean connecting = false;
-                serverSocket = new ServerSocket(port);
-                while (!shutdown) {
-                    try {
-
-                        Socket connection = serverSocket.accept();
-                        eth = new ServerEchoThread(connection, buffer);
-                        System.out.println("Connection made with" + connection.getInetAddress().getHostAddress());
-                        eth.start();
-                    } catch (IOException ex) {
-                        ex.printStackTrace();
-                    }
-                }
-            } catch (IOException ex) {
-                Logger.getLogger(SocketBuffer.class.getName()).log(Level.SEVERE, null, ex);
-            }
-
-        }
-
-        public void noticeClientConnetor() {
-            synchronized (this) {
-                notifyAll();
-            }
-        }
-
-        private void runClient() {
-
-            Socket socket = null;
-
-            while (!shutdown) {
-
-                SocketMessage<E> cmdobj = MessageQueue.poll();
-
-                if (cmdobj != null) {
-                    System.out.println("New Message = " + cmdobj.getPrimaryMessage());
-                    boolean reset = false;
-                    while (true) {
-
-                        try {
-                            if (reset) {
-                                try {
-                                    socket.close();
-                                } catch (Exception e) {
-
-                                }
-                                socket = null;
-
-                            }
-                            if (socket == null) {
-
-                                socket = new Socket(server, port);
-                            }
-
-                            ObjectOutputStream ous = new ObjectOutputStream(socket.getOutputStream());
-                            ObjectInputStream ins = new ObjectInputStream(socket.getInputStream());
-                            //send object with message
-                            //System.out.println("Client sending message" + cmdobj.getPrimaryMessage());
-                            ous.writeObject(cmdobj);
-
-                            //wait for reply
-                            SocketMessage result = (SocketMessage) ins.readObject();
-                            // System.out.println("Client receive message " + result.getPrimaryMessage() + " = " + result.getObj());
-                            //deal with reply
-                            if (result.getPrimaryMessage().equals("POLLRESULT")) {
-                                if (result.getObj() != null) {
-
-                                    syncCount(Integer.parseInt(result.getsecondaryMessage()));
-                                    StorageQueue.add((E) result.getObj());
-                                    clientCount++;
-                                    buffer.notifyConsumer();
-                                    break;
-                                }
-                            } else if (result.getPrimaryMessage().equals("PEEKRESULT")) {
-                                if (result.getObj() != null) {
-
-                                    syncCount(Integer.parseInt(result.getsecondaryMessage()));
-                                    StorageQueue.add((E) result.getObj());
-                                    clientCount++;
-                                    buffer.notifyConsumer();
-                                    break;
-                                }
-                                break;
-                            } else if (result.getPrimaryMessage().equals("PUSHRESULT")) {
-
-                                if (result.getObj() != null && (Boolean) result.getObj()) {
-                                    syncCount(Integer.parseInt(result.getsecondaryMessage()));
-                                    pushMessageinQUeue--;
-                                    break;
-                                } else {
-                                    continue;
-                                }
-                            } else {
-                                break;
-                            }
-                        } catch (IOException ex) {
-                            try {
-                                //System.out.println("Exception when Socket Client tried to connect to Socket Server!");
-                                reset = true;
-                                serverCount=0;
-                                clientCount=0;
-                                //Logger.getLogger(SocketBuffer.class.getName()).log(Level.SEVERE, null, ex);
-                                Thread.sleep(500);
-                                continue;
-                            } catch (InterruptedException ex1) {
-                                Logger.getLogger(SocketBuffer.class.getName()).log(Level.SEVERE, null, ex);
-                            }
-                            
-                        } catch (ClassNotFoundException ex) {
-                            Logger.getLogger(SocketBuffer.class.getName()).log(Level.SEVERE, null, ex);
-                        }
-
-                    }
-                } else {
-                    try {
-                        Thread.sleep(500);
-                    } catch (InterruptedException ex) {
-                        Logger.getLogger(SocketBuffer.class.getName()).log(Level.SEVERE, null, ex);
-                    }
-
-                }
-
-            }
-        }
-
-        @Override
-        public void run() {
-            if (type == SERVER) {
-                System.out.println("starting server");
-                runServer();
-
-            } else {
-                System.out.println("starting client");
-                runClient();
-            }
-        }
-
-    }
-
-    private SocketConnection ConnectionThread;
     private final int socketType;
 
     private Thread connector;
@@ -322,8 +80,8 @@ public class SocketBuffer<E extends Serializable> extends Buffer {
     }
 
     private void setSocket() {
-        ConnectionThread = new SocketConnection(socketType, this);
-        ConnectionThread.start();
+        //ConnectionThread = new SocketConnection(socketType, this);
+        //ConnectionThread.start();
     }
 
     /**
@@ -371,7 +129,7 @@ public class SocketBuffer<E extends Serializable> extends Buffer {
 
             if (socketType == CLIENT) {
                 MessageQueue.add(new SocketMessage<>("PUSH", null, (E) obj));
-                ConnectionThread.noticeClientConnetor();
+                //ConnectionThread.noticeClientConnetor();
                 pushMessageinQUeue++;
                 return true;
             } else {
@@ -405,7 +163,7 @@ public class SocketBuffer<E extends Serializable> extends Buffer {
                 return StorageQueue.poll();
             } else {
                 MessageQueue.add(new SocketMessage<>("POLL", null, null));
-                ConnectionThread.noticeClientConnetor();
+                //ConnectionThread.noticeClientConnetor();
                 return null;
             }
         } else {
@@ -430,7 +188,7 @@ public class SocketBuffer<E extends Serializable> extends Buffer {
                 return StorageQueue.peek();
             } else {
                 MessageQueue.add(new SocketMessage<>("PEEK", null, null));
-                ConnectionThread.noticeClientConnetor();
+                //ConnectionThread.noticeClientConnetor();
                 return null;
             }
         } else {

@@ -33,14 +33,22 @@ import jpipe.abstractclass.worker.Worker;
 public class SinglePipeSection extends PipeSection
         implements Runnable {
 
+    private int pid=0;
+    
     public SinglePipeSection(Worker worker) {
         this.setWorker(worker);
-        
+        this.getWorker().setPID(pid);
+    }
+    
+    public SinglePipeSection(Worker worker, int pid){
+        this.setWorker(worker);
+        this.pid=pid;
+        this.getWorker().setPID(pid);
     }
 
     @Override
     public void run() {
-        
+        this.getWorker().setPID(pid);
         this.getWorker().setWrapPipeSection(this);
         
         if (analyser != null) {

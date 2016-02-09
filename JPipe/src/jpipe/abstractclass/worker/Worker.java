@@ -50,6 +50,16 @@ public abstract class Worker extends Immutable implements IWorkerLazy {
 
     private int State = WorkerStates.INITIAL;
 
+    private int pid = 0;
+
+    public void setPID(int id) {
+        this.pid = id;
+    }
+
+    public int getPID() {
+        return this.pid;
+    }
+
     public int getState() {
         return State;
     }
@@ -114,19 +124,19 @@ public abstract class Worker extends Immutable implements IWorkerLazy {
             //System.out.println("Socket buffer detected");
             interval = 3000;
         }
-        Object result =bf.poll(this);;
+        Object result = bf.poll(this);;
         while (result == null) {
             synchronized (this) {
                 try {
                     this.State = WorkerStates.BLOCKED_POLLING;
                     wait(interval);
                     this.State = WorkerStates.WORKING;
-                    
+
                     result = bf.poll(this);
                 } catch (InterruptedException ex) {
                     Logger.getLogger(Worker.class.getName()).log(Level.SEVERE, null, ex);
                 }
-                
+
             }
         };
         return result;
