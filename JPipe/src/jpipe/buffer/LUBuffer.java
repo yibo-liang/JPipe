@@ -40,9 +40,9 @@ import jpipe.abstractclass.buffer.Buffer;
  * @author Yibo
  * @param <E>
  */
-public class LUBuffer<E> extends Buffer {
+public class LUBuffer<T> extends Buffer {
 
-    private final Queue<E> queue;
+    private final Queue<T> queue;
     private int maxsize = 0;
     private int count = 0;
 
@@ -76,13 +76,13 @@ public class LUBuffer<E> extends Buffer {
 
         if (maxsize > 0) {
             if (queue.size() < maxsize) {
-                queue.add((E) obj);
+                queue.add((T) obj);
 
             } else {
                 return false;
             }
         } else {
-            queue.add((E) obj);
+            queue.add((T) obj);
 
         }
         recordPushing(pusher);
@@ -151,7 +151,7 @@ public class LUBuffer<E> extends Buffer {
     }
 
     @Override
-    public synchronized E poll(Object poller) {
+    public synchronized T poll(Object poller) {
         register(poller, Buffer.CONSUMER);
 
         if (count > 0) {
@@ -169,7 +169,7 @@ public class LUBuffer<E> extends Buffer {
     }
 
     @Override
-    public synchronized E peek(Object peeker) {
+    public synchronized T peek(Object peeker) {
         register(peeker, Buffer.CONSUMER);
         return queue.peek();
     }

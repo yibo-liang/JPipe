@@ -1,0 +1,13 @@
+Has to be able to do:
+
+stdin | threadA | threadB
+
+stdin |bufferA| threadA | bufferB | threadB |bufferC
+
+stdin |bufferA[10]|threadA|bufferB[20]|threadB|bufferC[200]
+
+stdin |bufferA[10]|threadA|bufferB[20]
+       bufferA|threadC|bufferB
+
+stdin |bufferA[10]|threadA|bufferB[20]
+                   threadB|bufferB
