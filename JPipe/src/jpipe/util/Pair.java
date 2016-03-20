@@ -23,11 +23,15 @@
  */
 package jpipe.util;
 
+import java.io.Serializable;
+
 /**
  *
  * @author yl9
  */
-public class Pair<A, B> {
+public class Pair<A extends Serializable, B extends Serializable> implements Serializable {
+    
+    private static final long serialVersionUID = 7513452235612776111L;
 
     private final A first;
     private final B second;
